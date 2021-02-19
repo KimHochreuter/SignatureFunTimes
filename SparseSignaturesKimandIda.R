@@ -2,15 +2,37 @@ library(NMF)
 library(nnls)
 library(Biobase)
 library(nnlasso)
-#røøøøøøv
 #THIS SCRIPT ASSUMES THAT K'S LOWER VALUE ALWAYS IS 2!!!!
 
+###########################################################
+# Step 1
+###########################################################
+
+load("patients.rda")
+load("background.rda")
 M <- patients
-M <- M[rowSums(M)>1000,]
-G <- nrow(M)
-m <- ncol(M)
-K_range <- 2:10
-lambda_range <- seq(0,1,length.out = 5)
+
+###########################################################
+# Step 2
+###########################################################
+
+M <- M[rowSums(M)>1000,] #Removing patients with less than 1000 mutations
+G <- nrow(M) #Number of patients
+m <- ncol(M) #Number of mutation types
+
+###########################################################
+# Step 3
+###########################################################
+
+K_range <- 2:10 #Number of signatures to investigate
+lambda_range <- seq(0,1,length.out = 5) #Level of sparsity to investigate
+
+###########################################################
+# Step 4
+###########################################################
+
+#Estimation of alpha_0, i.e. background exposure.
+#Beta_0 is the background signature, which is given beforehand ind the file "background".
 
 #background exposure
 alpha_0 <- matrix(0,nrow=G,ncol=1)
@@ -23,6 +45,8 @@ for(i in 1:G) {
 starting_beta <- array(list(),c(length(K_range),1))
 curr_M <- M - (alpha_0 %*% t(background)) #alt det der mangler at blive forklaret af af de ægte signaturer
 curr_M[curr_M<0] <- 0 # negative entries are set to zero - problematic?
+
+#For each value of K we perform repeated NMF to gain an initial value of beta, which is the estimated signatures.
 k_idx <- 0
 for(k in K_range) {
   k_idx <- k_idx + 1
