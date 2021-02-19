@@ -2,7 +2,7 @@ library(NMF)
 library(nnls)
 library(Biobase)
 library(nnlasso)
-
+#røøøøøøv
 #THIS SCRIPT ASSUMES THAT K'S LOWER VALUE ALWAYS IS 2!!!!
 
 M <- patients
