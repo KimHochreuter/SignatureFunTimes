@@ -26,8 +26,8 @@ curr_M[curr_M<0] <- 0 # negative entries are set to zero - problematic?
 k_idx <- 0
 for(k in K_range) {
   k_idx <- k_idx + 1
-  beta <- NULL
-  beta <- basis(nmf(t(curr_M),rank=(k-1),nrun=10))
+  NMF <- nmf(t(curr_M),rank=(k-1),nrun=10)
+  beta <- basis(NMF)
   beta <- t(beta)
   beta <- rbind(t(background),beta)
   
@@ -36,31 +36,13 @@ for(k in K_range) {
   colnames(beta) <- colnames(M)
   beta <- beta / rowSums(beta)
   starting_beta[[k_idx,1]] <- beta
-}
-beta <- starting_beta
-
-#cut
-starting_alpha <- array(list(),c(length(K_range),1))
-k_idx <- 0
-for (k in 1:length(K_range)){
-  k_idx <- k_idx + 1
-  # initialize alpha
-  alpha <- matrix(0,nrow=G,ncol=k)
+  
+  alpha <- t(coef(NMF))
   rownames(alpha) <- 1:nrow(alpha)
   colnames(alpha) <- rownames(beta[[k]])[-1]
-  
-  if(k==1){
-    for(i in 1:G){
-      alpha[i,] <- nnls(as.matrix(beta[[k]][2:(k+1),]),as.matrix(M[i,]))$x
-    }
-  }
-  else{
-    for(i in 1:G){
-      alpha[i,] <- nnls(as.matrix(t(beta[[k]][2:(k+1),])),as.matrix(M[i,]))$x
-    }
-  }
   starting_alpha[[k_idx]] <- cbind(alpha_0,alpha)
 }
+beta <- starting_beta
 alpha <- starting_alpha
 
 #MSE <- matrix(rep(0, length(K_range)*length(lambda_range)*3), ncol = 3)
@@ -124,7 +106,7 @@ for (l in 1:20){
     alpha[i,] <- nnls(t(as.matrix(beta)),as.vector(M[i,]))$x
   }
 }
-par(mfrow=c(4,2))
+par(mfrow=c(2,2))
 for(i in 1:(K_best+1)){
   barplot(beta[i,])
 }
