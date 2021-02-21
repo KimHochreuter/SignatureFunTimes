@@ -69,6 +69,11 @@ for(k in K_range) {
 beta <- starting_beta
 alpha <- starting_alpha
 
+###########################################################
+# Step 5
+###########################################################
+#For each pair of lambda and K, perform cross-validation. 
+
 #MSE <- matrix(rep(0, length(K_range)*length(lambda_range)*3), ncol = 3)
 MSE <- c(0, 0, 10^7) #find better solution
 for (k in 1:length(K_range)){
@@ -77,10 +82,10 @@ for (k in 1:length(K_range)){
     for (i in 1:10){
       M_CV <- M
       CV_idx <- as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.1),replace=FALSE),])
-      M_CV[CV_idx] <- 0
+      M_CV[CV_idx] <- 0 #Replace approximately 1% of cells in matrix by 0.
       MSE_CV <- 0
-      for (s in 1:5){
-        for (l in 1:20){
+      for (s in 1:5){ #As suggested by paper, step 5c is repeated 5 times.
+        for (l in 1:20){ #Repeated estimation to ensure convergence.
           for (j in 1:m){ #beta can only be updated col-wise, due to the function nnlasso
             target <- M_CV[,j] - alpha[[k]][,1]*background[j] # vi får negative target values?
             #target[target<0] <- 0
@@ -106,10 +111,22 @@ for (k in 1:length(K_range)){
     MSE <- rbind(MSE, c(k, lambda, MSE_CV))
   }
 }
+
+###########################################################
+# Step 6
+###########################################################
+#Choose the values of K and lambda with the lowest MSE in the cross-validations.
 colnames(MSE) <- c("K", "lambda", "MSE")
 MSE[which.min(MSE[,3]),]
 K_best <- MSE[which.min(MSE[,3]),1]
 lambda_best <- MSE[which.min(MSE[,3]),2]
+
+
+###########################################################
+# Step 7
+###########################################################
+#Using the selected values for K and lambda, repeat step 5c on the complete matrix
+#M, without replacing any cells with 0. This gives us the final values of alpha_0, alpha and beta.
 
 alpha <- starting_alpha[[K_best]]
 beta <- starting_beta[[K_best]]
