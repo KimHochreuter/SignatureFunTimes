@@ -65,6 +65,7 @@ for(k in K_range) {
   rownames(alpha) <- 1:nrow(alpha)
   colnames(alpha) <- rownames(beta[[k]])[-1]
   starting_alpha[[k_idx]] <- cbind(alpha_0,alpha)
+  message("Initialization of alpha & beta: ", 100*(k/max(K_range)), "%")
 }
 beta <- starting_beta
 alpha <- starting_alpha
@@ -109,6 +110,7 @@ for (k in 1:length(K_range)){
     }
     MSE <- rbind(MSE, c(k, lambda, MSE_CV))
   }
+  message("Cross-validation for K and lambda: ", 100*(k/max(K_range)), "%")
 }
 
 ###########################################################
@@ -145,6 +147,7 @@ for (l in 1:20){
   for(i in 1:G){ #update alphas
     alpha[i,] <- nnls(t(as.matrix(beta)),as.vector(M[i,]))$x
   }
+  message("Final estimation of beta and alpha: ", 100*(l/20), "%")
 }
 par(mfrow=c(3,2))
 for(i in 1:(K_best+1)){
