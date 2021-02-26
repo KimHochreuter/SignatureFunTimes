@@ -149,7 +149,7 @@ for (l in 1:20){
   }
   message("Final estimation of beta and alpha: ", 100*(l/20), "%")
 }
-par(mfrow=c(5,2))
+par(mfrow=c((K_best/2 + 1),2))
 for(i in 1:(K_best+1)){
   barplot(beta[i,])
 }
