@@ -31,23 +31,3 @@ for (k in 2:max(K_range)){
   print(MSE)
   message(100*k/(max(K_range)), "%")
 }
-
-'
-
-2+2
-NMF <- nmf(M, rank = 6, nrun = 10)
-beta = t(basis(NMF))
-alpha = t(coef(NMF))
-
-alpha
-
-par(mfrow=c(3,2))
-for(i in 1:(6)){
-  barplot(alpha[,i])
-}
-
-asd
-dsa = paste(k,"tisser")
-asd$"2 tisser" = c(seq(1,10))
-asd
-'
