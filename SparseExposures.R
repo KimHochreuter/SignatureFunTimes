@@ -1,42 +1,28 @@
 # SPARSE EXPOSURES??
-'''This function/script takes a predetermined K as input. 
-Combine with the Cross-validation. Maybe???
-In this we use the assumption V = W%*%t(H)'''
+library(nnls)
+
+Sigs <- as.matrix(COSMIC_Mutational_Signatures_v3_1[,4:75])
+rownames(Sigs) <- c(COSMIC_Mutational_Signatures_v3_1[,3]$TYPE)
 
 #initialize W and H - can also just use NMF? Maybe ignore
-K <- 5
+K <- ncol(Sigs)
 V <- patients
 M <- nrow(V)
 N <- ncol(V)
-W <- matrix(runif(M*K, 0, 100), ncol = K, nrow = M)
-H <- matrix(runif(K*N, 0, 100), ncol = N, nrow = K)
+H <- t(Sigs)
 
-#initialize W and H
-NMF <- nmf(t(V),rank=(K),nrun=10)
-H <- basis(NMF)
-
-colnames(H) <- c(paste0("S",1:(ncol(H))))
-rownames(H) <- colnames(V)
-
-W <- t(coef(NMF))
+W <- matrix(0,nrow=M,ncol=K)
 rownames(W) <- 1:nrow(W)
-colnames(W) <- colnames(H)
-
-#update cols in H 
-updateColInH <- function(hi, Ri, wi, delta, i){
-  v <- (t(Ri)%*%wi + delta*hi)/(norm(wi, type = "2") + delta)
-  v <- sort(v, decreasing = T)
-  alpha <- 1
-  for (j in 1:n){
-    alpha <- alpha - v[i]
-    C = alpha/j
-    if (j == n || C<= -v[(j+1)])
-      break
-  }
-  h[(j+1):n] <- 0
-  h(j) <- h
-  return(h)
+colnames(W) <- rownames(H)
+for(i in 1:M) {
+  W[i,] <- nnls(t(H),as.vector(V[i,]))$x
 }
+table(rowSums(W) == 0)
+table(colSums(W) == 0)
 
-delta <- 10^(-4)
-R <- V-W%*%t(H)
+klargestsigs <- function(vec, k = 10){
+  index <- which(vec >= sort(vec, decreasing=T)[k], arr.ind=TRUE)
+  #return(colnames(W)[index])
+  return(index)
+}
+largestsigs <- apply(W, MARGIN = 1, FUN = klargestsigs)
