@@ -19,9 +19,11 @@ MSE_CV <- matrix(0, ncol = 10, nrow = 5)
 
 AIC_collect = list(0)
 BIC_collect = list(0)
+KL_collect = list(0)
 
-AIC_normal = matrix(0, ncol = 10, nrow = 5)
-BIC_normal = matrix(0, ncol = 10, nrow = 5)
+AIC_pois = matrix(0, ncol = 10, nrow = 5)
+BIC_pois = matrix(0, ncol = 10, nrow = 5)
+KL_pois = matrix(0, ncol = 10, nrow = 5)
 
 CV_idx <- replicate(10, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
 
@@ -31,20 +33,22 @@ for (k in 2:max(K_range)){
       M_CV <- M
       M_CV[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
       for (s in 1:5){
-        NMF <- nmf(M_CV, rank = k, nrun = 10)
+        NMF <- nmf(M_CV, rank = k, nrun = 10, method = "KL")
         alpha = t(coef(NMF))
         beta = t(basis(NMF))
         #we replace the zero cells with the estimate from the CV. This is run 5 times, with updated M
         M_CV[CV_idx[[i]]] <- (t(alpha%*%beta))[CV_idx[[i]]]
         MSE_CV[s,i] <- mean((as.vector(M[CV_idx[[i]]])-(t(alpha%*%beta))[CV_idx[[i]]])^2)
-        AIC_normal[s,i] = 96*k + MSE_CV[s,i]
-        BIC_normal[s,i] = k*log(m*G) + MSE_CV[s,i]
+        AIC_pois[s,i] = -2*sum(as.vector(M)*log(as.vector(alpha%*%beta))-as.vector(alpha%*%beta)) + 2*(k + ncol(M) + nrow(M)) 
+        BIC_pois[s,i] = -2*sum(as.vector(M)*log(as.vector(alpha%*%beta))-as.vector(alpha%*%beta)) + 2*(k + ncol(M) + nrow(M))*log(ncol(M) * nrow(M)) 
+        KL_pois[s,i] = sum(as.vector(M)*log(as.vector(as.vector(M)/as.vector(alpha%*%beta))) - as.vector(M) + as.vector(alpha%*%beta))
         #print(MSE_CV)
         
       }
     }
-  AIC_collect[[k]] = AIC_normal
-  BIC_collect[[k]] = BIC_normal
+  AIC_collect[[k]] = AIC_pois
+  BIC_collect[[k]] = BIC_pois
+  KL_collect[[k]] = KL_pois
   MSE[[k]] = MSE_CV
   #print(MSE)
   message(100*k/(max(K_range)), "%")
