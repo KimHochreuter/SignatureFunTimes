@@ -53,7 +53,7 @@ for (k in 2:max(K_range)){
   #print(MSE)
   message(100*k/(max(K_range)), "%")
 }
-plot(0,0,xlim = c(min(K_range), max(K_range)), ylim = c(0, 50000))
+plot(0,0,xlim = c(min(K_range), max(K_range)), ylim = c(0, 10000))
 for(k in K_range){
   points(rep(k, 10), MSE[[k]][5,], xlim = c(min(K_range), max(K_range)))
   points(k, median(MSE[[k]][5,]), col = 2, pch = 16)
