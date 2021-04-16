@@ -109,7 +109,7 @@ M <- M[rowSums(M)>1000,]#Removing patients with less than 1000 mutations
 G <- nrow(M) #Number of patients
 m <- ncol(M) #Number of mutation types
 
-K_range <- 2:15 #Number of signatures to investigate
+K_range <- 2:5 #Number of signatures to investigate
 
 MSE_NB <- list(0) #find better solution
 MSE_NB2 <- list(0)
@@ -128,13 +128,16 @@ for (k in 2:max(K_range)){
     M_CV_NB <- M
     M_CV_NB[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
     for (s in 1:5){
-      for (z in seq(1,100, length.out = 10)) {
-        NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = z)
+      alpha =  c(1,25,50,75,100)#seq(1,100, length.out = 5)
+      dummy = rep(0, length(alpha))
+      for (z in 1:length(alpha)) {
+        NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = alpha[z])
         alpha_NB = t(NMF_NB$E)
         beta_NB = t(NMF_NB$P)
-        MSE_CV_NB[s,i] = mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
-        MSE_NB2[[z]] = MSE_CV_NB
+        MSE_CV_NB[s,z] = mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
+        #dummy[z] = mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
       }
+      
       NMF_po <- nmf(M_CV_po, rank = k, method = "KL")
       alpha_po = t(coef(NMF_po))
       beta_po = t(basis(NMF_po))
@@ -146,6 +149,7 @@ for (k in 2:max(K_range)){
       
       MSE_CV_po[s,i] <- mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2)
     }
+    MSE_NB2[[i]] = MSE_CV_NB
   }
   MSE_NB[[k]] = MSE_NB2
   MSE_po[[k]] = MSE_CV_po
@@ -165,9 +169,38 @@ abline(h = 2000)
 
 
 
-plot(0,0,xlim = c(min(K_range), max(K_range)), ylim = c(0, 20000))
+plot(0,0,xlim = c(min(K_range), max(K_range)), ylim = c(0, 10000))
 for(k in K_range){
-  points(rep(k, 10), apply(MSE[[k]], 2, mean), xlim = c(min(K_range), max(K_range)))
-  points(k, median(apply(MSE[[k]], 2, mean)), col = 2, pch = 16)
+  #points(rep(k, 10), MSE_po[[k]][5,], xlim = c(min(K_range), max(K_range)))
+  points(k, median(MSE_po[[k]][5,]), col = 2, pch = 16)
 }
 abline(h = 2000)
+abline(h = 1000)
+
+plot(0,0,xlim = c(min(K_range), max(K_range)), ylim = c(0, 10000))
+for (j in seq(1,100, length.out = 10)) {
+  for(k in K_range){
+    #points(rep(k, 10), MSE_NB[[k]][[j]][5,], xlim = c(min(K_range), max(K_range)))
+    points(k, median(MSE_NB[[k]][[j]][5,]), col = j, pch = 16, )
+  }
+}
+abline(h = 2000)
+abline(h = 1000)
+
+plot(0,0,xlim = c(1, 100), ylim = c(0, 10000))
+for (j in seq(1,100, length.out = 10)) {
+  for(k in K_range){
+    #points(rep(k, 10), MSE_NB[[k]][[j]][5,], xlim = c(min(K_range), max(K_range)))
+    points(j, median(MSE_NB[[k]][[j]][5,]), col = j, pch = 16, )
+  }
+}
+abline(h = 1000)
+
+plot(0,0,xlim = c(1, 100), ylim = c(0, 20))
+for (j in seq(1,100, length.out = 10)) {
+  for(k in K_range){
+    #points(rep(k, 10), MSE_NB[[k]][[j]][5,], xlim = c(min(K_range), max(K_range)))
+    points(j, k, cex = MSE_NB[[k]][[j]][5,]/10000,  col = j, pch = 16)
+  }
+}
+abline(h = 1000)
