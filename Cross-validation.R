@@ -89,3 +89,85 @@ W_df$muta2 = str_sub(W_df$MutationType, 3, -3)
   + theme_bw() 
   + theme(axis.text.x = element_text(angle = 90), legend.position = "none")
   + facet_grid(~muta2,scales="free_x") )
+
+
+
+################################################################################
+##
+##
+##
+################################################################################
+source("NMFNBMMsquarem.R")
+
+start_time <- Sys.time()
+
+load("DATA/patients.rda")
+M <- patients
+#M = t(V)
+M <- M[rowSums(M)>1000,]#Removing patients with less than 1000 mutations
+#M = head(M, n = 50)
+G <- nrow(M) #Number of patients
+m <- ncol(M) #Number of mutation types
+
+K_range <- 2:15 #Number of signatures to investigate
+
+MSE_NB <- list(0) #find better solution
+MSE_NB2 <- list(0)
+MSE_CV_NB <- matrix(0, ncol = 10, nrow = 5)
+
+MSE_po <- list(0) #find better solution
+MSE_CV_po <- matrix(0, ncol = 10, nrow = 5)
+
+CV_idx <- replicate(10, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
+
+for (k in 2:max(K_range)){
+  #MSE_CV <- 0
+  for (i in 1:10){
+    M_CV_po <- M
+    M_CV_po[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
+    M_CV_NB <- M
+    M_CV_NB[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
+    for (s in 1:5){
+      for (z in seq(1,100, length.out = 10)) {
+        NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = z)
+        alpha_NB = t(NMF_NB$E)
+        beta_NB = t(NMF_NB$P)
+        MSE_CV_NB[s,i] = mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
+        MSE_NB2[[z]] = MSE_CV_NB
+      }
+      NMF_po <- nmf(M_CV_po, rank = k, method = "KL")
+      alpha_po = t(coef(NMF_po))
+      beta_po = t(basis(NMF_po))
+      
+      #we replace the zero cells with the estimate from the CV. This is run 5 times, with updated M
+      M_CV_po[CV_idx[[i]]] <- (t(alpha_po%*%beta_po))[CV_idx[[i]]]
+      M_CV_NB[CV_idx[[i]]] <- (t(alpha_NB%*%beta_NB))[CV_idx[[i]]]
+      
+      
+      MSE_CV_po[s,i] <- mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2)
+    }
+  }
+  MSE_NB[[k]] = MSE_NB2
+  MSE_po[[k]] = MSE_CV_po
+  message(100*(k-1)/(max(K_range)-1), "%")
+}
+
+end_time <- Sys.time()
+end_time - start_time
+
+
+plot(0,0,xlim = c(min(K_range), max(K_range)), ylim = c(0, 10000))
+for(k in K_range){
+  points(rep(k, 10), MSE[[k]][1,], xlim = c(min(K_range), max(K_range)))
+  points(k, median(MSE[[k]][1,]), col = 2, pch = 16)
+}
+abline(h = 2000)
+
+
+
+plot(0,0,xlim = c(min(K_range), max(K_range)), ylim = c(0, 20000))
+for(k in K_range){
+  points(rep(k, 10), apply(MSE[[k]], 2, mean), xlim = c(min(K_range), max(K_range)))
+  points(k, median(apply(MSE[[k]], 2, mean)), col = 2, pch = 16)
+}
+abline(h = 2000)
