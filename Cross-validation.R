@@ -12,7 +12,7 @@ M <- M[rowSums(M)>1000,]#Removing patients with less than 1000 mutations
 G <- nrow(M) #Number of patients
 m <- ncol(M) #Number of mutation types
 
-K_range <- 2:15 #Number of signatures to investigate
+K_range <- 2:10 #Number of signatures to investigate
 
 MSE <- list(0) #find better solution
 MSE_CV <- matrix(0, ncol = 10, nrow = 5)
@@ -109,7 +109,7 @@ M <- M[rowSums(M)>1000,]#Removing patients with less than 1000 mutations
 G <- nrow(M) #Number of patients
 m <- ncol(M) #Number of mutation types
 
-K_range <- 2:5 #Number of signatures to investigate
+K_range <- 2:10 #Number of signatures to investigate
 
 MSE_NB <- list(0) #find better solution
 MSE_NB2 <- list(0)
@@ -128,7 +128,7 @@ for (k in 2:max(K_range)){
     M_CV_NB <- M
     M_CV_NB[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
     for (s in 1:5){
-      alpha =  c(1,25,50,75,100)#seq(1,100, length.out = 5)
+      alpha =  c(1,10,20,50,100)#seq(1,100, length.out = 5)
       dummy = rep(0, length(alpha))
       for (z in 1:length(alpha)) {
         NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = alpha[z])
@@ -153,7 +153,7 @@ for (k in 2:max(K_range)){
   }
   MSE_NB[[k]] = MSE_NB2
   MSE_po[[k]] = MSE_CV_po
-  message(100*(k-1)/(max(K_range)-1), "%")
+  message(round(100*(k-1)/(max(K_range)-1), digits = 2), "%")
 }
 
 end_time <- Sys.time()
@@ -178,7 +178,7 @@ abline(h = 2000)
 abline(h = 1000)
 
 plot(0,0,xlim = c(min(K_range), max(K_range)), ylim = c(0, 10000))
-for (j in seq(1,100, length.out = 10)) {
+for (j in 1:length(alpha)) {
   for(k in K_range){
     #points(rep(k, 10), MSE_NB[[k]][[j]][5,], xlim = c(min(K_range), max(K_range)))
     points(k, median(MSE_NB[[k]][[j]][5,]), col = j, pch = 16, )
@@ -197,10 +197,10 @@ for (j in seq(1,100, length.out = 10)) {
 abline(h = 1000)
 
 plot(0,0,xlim = c(1, 100), ylim = c(0, 20))
-for (j in seq(1,100, length.out = 10)) {
+for (j in 1:length(alpha)) {
   for(k in K_range){
     #points(rep(k, 10), MSE_NB[[k]][[j]][5,], xlim = c(min(K_range), max(K_range)))
-    points(j, k, cex = MSE_NB[[k]][[j]][5,]/10000,  col = j, pch = 16)
+    points(alpha[j], k, cex = MSE_NB[[k]][[j]][5,]/10000,  col = j, pch = 16)
   }
 }
 abline(h = 1000)
