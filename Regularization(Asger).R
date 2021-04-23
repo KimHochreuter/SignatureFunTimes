@@ -21,12 +21,13 @@ points(1:20,v,col="purple",pch=3,cex=1.5)
 ##------------------------------------------------------------
 ## Negative regularized log-likelihood (for minimization)
 ##------------------------------------------------------------
-lnL <- function(w,lam,a,b,H1,H2,v){
+lnL <- function(w,lam, a,b,H1,H2,v){
   ## Weights must be positive
   if(w[1]<0.001) return(10^5)
   if(w[2]<0.001) return(10^5)
   ## Prior (shrinkage) for first weight: Exponential distribution
-  term1 <- -lam*w[1]
+  #term1 <- -lam*w[1]
+  term1 <- -b*w[1]+(a-1)*log(w[1])
   ## Prior (regularization) for second weight Gamma distribution 
   term2 <- -b*w[2]+(a-1)*log(w[2])
   ## Likelihood: Poisson distribution
@@ -36,9 +37,9 @@ lnL <- function(w,lam,a,b,H1,H2,v){
 }
 ##-------------------------------------------------------------------------
 ## Test the function
-lnL(c(10,100),lam=0,a=1,b=0,H1=H1,H2=H2,v=v)
+lnL(c(10,100),lam =0, a=1,b=0,H1=H1,H2=H2,v=v)
 ## No regularization 
-fit1 <- nlm(lnL,c(10,100),lam=0,a=1,b=0,H1=H1,H2=H2,v=v)
+fit1 <- nlm(lnL,c(10,100),lam=0,a=1,b=0,H1=H1,H2=H2,v=v, print.level = 2)
 fit1$estimate
 GKL1 <- fit1$minimum
 points(1:20,fit1$estimate[1]*H1+fit1$estimate[2]*H2,pch=19,col="red")
