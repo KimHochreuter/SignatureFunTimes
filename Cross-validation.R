@@ -180,12 +180,18 @@ for (k in 2:max(K_range)){
       #we replace the zero cells with the estimate from the CV. This is run 5 times, with updated M
       M_CV_po[CV_idx[[i]]] <- (t(alpha_po%*%beta_po))[CV_idx[[i]]]
       
+      params <- 2*(k + ncol(M) + nrow(M))
+      nobs <- ncol(M)*nrow(M)
+      log_lik_M <- sum(as.vector(M_CV_po)*log(as.vector(t(alpha_po%*%beta_po)))-as.vector(t(alpha_po%*%beta_po)))
+      BIC <- -2*log_lik_M + 
+        2*params*log(nobs) 
+      
       if (is.na(MSE_CV_po)){
-        MSE_CV_po <- c(k, i, s, mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2))
+        MSE_CV_po <- c(k, i, s, mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2), BIC)
         
       }
       else{
-        MSE_CV_po <- rbind(MSE_CV_po,c(k, i, s, mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2)))
+        MSE_CV_po <- rbind(MSE_CV_po,c(k, i, s, mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2)), BIC)
       }
     }
   }
@@ -195,7 +201,7 @@ for (k in 2:max(K_range)){
 end_time <- Sys.time()
 end_time - start_time
 
-colnames(MSE_CV_po) <- c("K", "CV_set", "n_update", "MSE")
+colnames(MSE_CV_po) <- c("K", "CV_set", "n_update", "MSE", "BIC")
 
 ################################################################################
 ##
@@ -233,10 +239,10 @@ for (k in 2:max(K_range)){
         else{
           MSE_CV_NB <- rbind(MSE_CV_NB, c(k, alpha[z], i, s,MSE))
         }
+        
+        #we replace the zero cells with the estimate from the CV. This is run 5 times, with updated M
+        M_CV_NB[CV_idx[[i]]] <- (t(alpha_NB%*%beta_NB))[CV_idx[[i]]]
       }
-      
-      #we replace the zero cells with the estimate from the CV. This is run 5 times, with updated M
-      M_CV_NB[CV_idx[[i]]] <- (t(alpha_NB%*%beta_NB))[CV_idx[[i]]]
       
       
     }
@@ -261,40 +267,58 @@ start_time <- Sys.time()
 K_range <- 2:10 #Number of signatures to investigate
 start_alpha <- 10
 
-log_lik_NB <- function(alp, x, wh){
-  x <- as.vector(x)
-  wh <- as.vector(wh)
-  print(c(gamma(alp+x[91]),gamma(alp+x[93]), gamma(alp+x[111]), gamma(alp+x[121])))
-  return(log(gamma(x+alp)) - log(gamma(alp))) + x*log(wh/(alp+wh)) + alp*log(1-wh/(wh+alp))
-}
+#log_lik_NB <- function(alp, x, wh){ #not used
+#  x <- as.vector(x)
+#  wh <- as.vector(wh)
+#  print(c(gamma(alp+x[91]),gamma(alp+x[93]), gamma(alp+x[111]), gamma(alp+x[121])))
+#  return(log(gamma(x+alp)) - log(gamma(alp))) + x*log(wh/(alp+wh)) + alp*log(1-wh/(wh+alp))
+#}
+
+
 
 MSE_CV_NB <- NA
 CV_idx <- replicate(10, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
 
 for (k in 2:max(K_range)){
+  
   for (i in 1:10){
+    
     alpha <- start_alpha
     M_CV_NB <- M
     M_CV_NB[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
+    
     for (s in 1:5) {
+      
       NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = alpha)
       alpha_NB = t(NMF_NB$E)
       beta_NB = t(NMF_NB$P)
-      alpha <- optim(par = alpha, log_lik_NB(alp = 10, x = M_CV_NB, wh = alpha_NB%*%beta_NB))
-      #MSE_CV_NB[s,z] = mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
+      
+      log_lik_NB <- function(alpha){
+        WH <- t(alpha_NB%*%beta_NB)
+        M <- round(M_CV_NB)
+        return(sum(dnbinom(x = M, size = alpha, prob = WH/(alpha + WH), log = T)))
+      }
+      
+      alpha <- optimize(log_lik_NB, interval = c(0,100))$minimum
       MSE <-  mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
+      
       if (is.na(MSE_CV_NB)){
-        MSE_CV_NB <- c(k, alpha[z], i, s,MSE)
+        MSE_CV_NB <- c(k, alpha, i, s,MSE)
       }
+      
       else{
-        MSE_CV_NB <- rbind(MSE_CV_NB, c(k, alpha[z], i, s,MSE))
+        MSE_CV_NB <- rbind(MSE_CV_NB, c(k, alpha, i, s,MSE))
       }
+      
+      M_CV_NB[CV_idx[[i]]] <- (t(alpha_NB%*%beta_NB))[CV_idx[[i]]]
+      
     }
     
     #we replace the zero cells with the estimate from the CV. This is run 5 times, with updated M
-    M_CV_NB[CV_idx[[i]]] <- (t(alpha_NB%*%beta_NB))[CV_idx[[i]]]
+    #M_CV_NB[CV_idx[[i]]] <- (t(alpha_NB%*%beta_NB))[CV_idx[[i]]]
     
   }
+  
   message(round(100*(k-1)/(max(K_range)-1), digits = 2), "%")
 }
 
@@ -370,6 +394,16 @@ ggplot(data = plot_CV_NB, aes(x = K, y = medMSE, colour = factor(alpha))) +
   geom_point()+geom_line(aes(group = alpha))
 ggplot(data = plot_CV_NB, aes(x = factor(alpha), y = medMSE, colour = factor(K))) + 
   geom_point()+geom_line(aes(group = K))
+
+
+#plot for alpha updated in run
+plot_CV_NB <- data.frame(subset(MSE_CV_NB, MSE_CV_NB[,4] == 5))%>%
+  group_by(K)%>%
+  summarise(medMSE = median(MSE), alpbar = mean(alpha))
+ggplot(data = plot_CV_NB, aes(x = factor(K), y = medMSE)) + geom_point()
+ggplot(data = plot_CV_NB, aes(x = factor(K), y = alpbar)) + geom_point()
+
+
 
 #plot cv for pois
 plot_CV_po <- data.frame(subset(MSE_CV_po, MSE_CV_po[,3] == 5)) %>%
