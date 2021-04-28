@@ -295,11 +295,11 @@ for (k in 2:max(K_range)){
       
       log_lik_NB <- function(alpha){
         WH <- t(alpha_NB%*%beta_NB)
-        M <- ceiling(M_CV_NB)
-        return(sum(dbinom(x = M, size = alpha, prob = WH/(alpha + WH), log = T)))
+        M <- round(M_CV_NB)
+        return(sum(dnbinom(x = M, size = alpha, prob = WH/(alpha + WH), log = T)))
       }
       
-      alpha <- optim(par = alpha, log_lik_NB)$par
+      alpha <- optimize(log_lik_NB, interval = c(0,100))$minimum
       MSE <-  mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
       
       if (is.na(MSE_CV_NB)){
