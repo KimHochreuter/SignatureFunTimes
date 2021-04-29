@@ -296,7 +296,7 @@ for (k in 2:max(K_range)){
       log_lik_NB <- function(alpha){
         WH <- t(alpha_NB%*%beta_NB)
         M <- round(M_CV_NB)
-        return(sum(dnbinom(x = M, size = alpha, prob = WH/(alpha + WH), log = T)))
+        return(-sum(dnbinom(x = M, size = alpha, prob = WH/(alpha + WH), log = T)))
       }
       
       alpha <- optimize(log_lik_NB, interval = c(0,100))$minimum
@@ -391,7 +391,7 @@ plot_CV_NB <- data.frame(subset(MSE_CV_NB, MSE_CV_NB[,4] == 5)) %>%
   group_by(K, alpha) %>%
   summarise(medMSE = median(MSE))
 ggplot(data = plot_CV_NB, aes(x = K, y = medMSE, colour = factor(alpha))) + 
-  geom_point()+geom_line(aes(group = alpha))
+  geom_point()+geom_line(aes(group = alpha))+ theme(legend.position = "none")
 ggplot(data = plot_CV_NB, aes(x = factor(alpha), y = medMSE, colour = factor(K))) + 
   geom_point()+geom_line(aes(group = K))
 

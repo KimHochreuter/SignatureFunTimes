@@ -1,10 +1,13 @@
 library(NMF)
 library(car)
+source("NMFNBMMsquarem.R")
 
 
 load("BRCA21.RData")
+load("data/patients.rda")
 #Simulate poisson and NB data from the BRCA21 dataset
-data <- t(V)
+#data <- t(V)
+data = patients
 NMF = nmf(data, rank = 6, nrun = 10, method = "KL")
 W = basis(NMF)
 H = coef(NMF)
@@ -63,7 +66,7 @@ plot(anscombeTrans_NB1(as.vector(data), 10), anscombeTrans_NB(W%*%H, 10) - ansco
 
 NBdata = rnbinom(100, size = 10, prob = runif(100))
 
-m = lm(NBdata ~ 1)
+m = lm(anscombeTrans_NB(NBdata, 10) ~ 1)
 plot(NBdata, residuals(m))
 plot(anscombeTrans_NB(NBdata, 10))
 
@@ -82,18 +85,27 @@ anscombeTrans = function(x) 2*sqrt(x + 3/8)
 
 m = 20
 Pdata = rpois(5000, m)
-plot(anscombeTrans(Pdata))
+#plot(anscombeTrans(Pdata))
 
 #sd theoretically = 1 + O(1/mean^2)
-sd(anscombeTrans(Pdata))
-qqPlot(anscombeTrans(Pdata))
-shapiro.test(anscombeTrans(Pdata))
+sd(anscombeTrans(Pdata), na.rm = T)
+#qqPlot(anscombeTrans(Pdata))
+#shapiro.test(anscombeTrans(Pdata))
 
-hist(anscombeTrans(Pdata), prob = T)
+hist(anscombeTrans(Pdata), prob = T, breaks = 25)
 curve(dnorm(x,mean = 2*sqrt(m + 3/8)-1/(4*sqrt(m)), sd = 1), add = T, col = "red")
 
-resi = (anscombeTrans(Pdata) - 2*sqrt(m + 3/8)-1/(4*sqrt(m)))
-hist(resi)
+#
+#MIXTURE OF LAMBDAS
+#
+
+Pdata = c(rpois(1000, 10),
+          rpois(1000, 20),
+          rpois(1000, 50),
+          rpois(1000, 100),
+          rpois(1000, 200)
+          )
+hist(anscombeTrans(Pdata), prob = T, breaks = 25)
 
 #
 #TESTING IN NMF SETTING
@@ -103,61 +115,239 @@ V_pois_obs <- matrix(rpois(21*96, lambda = W%*%H), nrow = 21)
 NMF_pois <- nmf(V_pois_obs, rank = 6, nrun = 10, method = "KL")
 W_pois = basis(NMF_pois)
 H_pois = coef(NMF_pois)
+
+
+resi = anscombeTrans(V_pois_obs) - anscombeTrans(W_pois%*%H_pois)
+hist(resi, prob = T, breaks = 30)
+curve(dnorm(x,mean = 0, sd = 1), add = T, col = "red")
+
+
+#
+#TESTING ON DATA
+#
+
+NMF_pois <- nmf(data, rank = 6, nrun = 10, method = "KL")
+W_pois = basis(NMF_pois)
+H_pois = coef(NMF_pois)
+
+
+resi = anscombeTrans(data) - anscombeTrans(W_pois%*%H_pois)
+hist(resi, prob = T, breaks = 30)
+curve(dnorm(x,mean = 0, sd = 1), add = T, col = "red")
+curve(dnorm(x, sd = sd(resi, na.rm = T)), add = T, col = "blue")
+
+
+
 ################################################################################
 #
 #Anscombe Negative Binomial transformation
 #
 ################################################################################
 
-source("NMFNBMMsquarem.R")
-inverse = function (f, lower = -100, upper = 100) {
-  function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)[1]
-}
-sinh_inverse = inverse(function(x) sinh(x), 0.1, 100)
-ihs <- function(x) {
-  y <- log(x + sqrt(x^2+1))
-  return(y)
-}
+#
+#INITIAL TESTING
+#
 
-anscombeTrans_NB = function(x, alpha, c = 3/8) sqrt(x-1/2)*ihs(sqrt((alpha + c)/(x-c)))
-anscombeTrans_NB_alt = function(x, alpha) log(alpha + x/2)
+anscombeTrans_NB = function(x, alpha, c = 3/8) sqrt(alpha-1/2)*asinh(sqrt((x + c)/(alpha-2*c)))
+anscombeTrans_NB_alt = function(x, alpha) log(x + alpha/2)
+anscombeTrans_NB2 = function(x, alpha, c = 3/8) 2*asinh(sqrt((x + c)/(alpha-2*c)))
 
-k = 10
+k = 50
 NBdata = rnbinom(5000, size = k, 0.3)
-hist(NBdata)
+#hist(NBdata)
 hist(anscombeTrans_NB(NBdata, k), prob = T, breaks = 50)
 curve(dnorm(x, mean = mean(anscombeTrans_NB(NBdata, k)), sd = trigamma(k)), add = T, col = "red")
+curve(dnorm(x, mean = mean(anscombeTrans_NB(NBdata, k)), sd = sd(anscombeTrans_NB(NBdata, k))), add = T, col = "blue")
+
+
+hist(anscombeTrans_NB2(NBdata, k), prob = T, breaks = 50)
+curve(dnorm(x, mean = mean(anscombeTrans_NB2(NBdata, k)), sd = trigamma(k)), add = T, col = "red")
+curve(dnorm(x, mean = mean(anscombeTrans_NB2(NBdata, k)), sd = sd(anscombeTrans_NB2(NBdata, k))), add = T, col = "blue")
 
 
 hist(anscombeTrans_NB_alt(NBdata, k), prob = T, breaks = 50)
 curve(dnorm(x, mean = mean(anscombeTrans_NB_alt(NBdata, k)), sd = trigamma(k)), add = T, col = "red")
+curve(dnorm(x, mean = mean(anscombeTrans_NB_alt(NBdata, k)), sd = sd(anscombeTrans_NB_alt(NBdata, k))), add = T, col = "blue")
+
+#
+#MIXTURE OF ALPHAS
+#
+
+NBdata = c(rnbinom(1000, size = 10, 0.3), 
+           rnbinom(1000, size = 20, 0.3),
+           rnbinom(1000, size = 50, 0.3),
+           rnbinom(1000, size = 100, 0.3),
+           rnbinom(1000, size = 200, 0.3)
+           )
+
+hist(NBdata)
+par(mfrow=c(3,1))
+hist(anscombeTrans_NB(NBdata, (10 + 20 + 50 + 100 + 200)/5), prob = T, breaks = 50)
+hist(anscombeTrans_NB(NBdata, 10), prob = T, breaks = 50)
+hist(anscombeTrans_NB(NBdata, 500), prob = T, breaks = 50)
+
+hist(anscombeTrans_NB2(NBdata, (10 + 20 + 50 + 100 + 200)/5), prob = T, breaks = 50)
+hist(anscombeTrans_NB2(NBdata, 10), prob = T, breaks = 50)
+hist(anscombeTrans_NB2(NBdata, 500), prob = T, breaks = 50)
+
+hist(anscombeTrans_NB_alt(NBdata, (10 + 20 + 50 + 100 + 200)/5), prob = T, breaks = 50)
+hist(anscombeTrans_NB_alt(NBdata, 10), prob = T, breaks = 50)
+hist(anscombeTrans_NB_alt(NBdata, 500), prob = T, breaks = 50)
+
+
+NBdata = c(rnbinom(1000, size = 10, runif(1000)), 
+           rnbinom(1000, size = 20, runif(1000)),
+           rnbinom(1000, size = 50, runif(1000)),
+           rnbinom(1000, size = 100, runif(1000)),
+           rnbinom(1000, size = 200, runif(1000))
+)
+hist(anscombeTrans_NB(NBdata, (10 + 20 + 50 + 100 + 200)/5), prob = T, breaks = 50)
+hist(anscombeTrans_NB(NBdata, 10), prob = T, breaks = 50)
+hist(anscombeTrans_NB(NBdata, 500), prob = T, breaks = 50)
+
+hist(anscombeTrans_NB2(NBdata, (10 + 20 + 50 + 100 + 200)/5), prob = T, breaks = 50)
+hist(anscombeTrans_NB2(NBdata, 10), prob = T, breaks = 50)
+hist(anscombeTrans_NB2(NBdata, 500), prob = T, breaks = 50)
+
+hist(anscombeTrans_NB_alt(NBdata, (10 + 20 + 50 + 100 + 200)/5), prob = T, breaks = 50)
+hist(anscombeTrans_NB_alt(NBdata, 10), prob = T, breaks = 50)
+hist(anscombeTrans_NB_alt(NBdata, 500), prob = T, breaks = 50)
 
 
 #
-#
+#TESTING IN NMF SETTING
 #
 
-k=10
+
+k=50
 V_NB_obs <- matrix(rnbinom(21*96, size = k, prob = W%*%H/(k+W%*%H)), nrow = 21)
 NMF_NB <- NMFNBMMsquarem(V_NB_obs, 6, k)
 W_NB = NMF_NB$E
 H_NB = NMF_NB$P
 
-res = (anscombeTrans_NB_alt(as.vector(V_NB_obs), k) - anscombeTrans_NB_alt(as.vector(H_NB%*%W_NB), k))/trigamma(k)
+
+res = (anscombeTrans_NB_alt(as.vector(V_NB_obs), k) - anscombeTrans_NB_alt(as.vector(H_NB%*%W_NB), k))
 hist(res, breaks = 50, prob = T)
 curve(dnorm(x), add = T, col = "red")
+curve(dnorm(x, sd = sd(res, na.rm = T)), add = T, col = "blue")
 
-res = (anscombeTrans_NB_alt(as.vector(V_NB_obs), k) - anscombeTrans_NB_alt(as.vector(H_NB%*%W_NB), k))/(1/(k-1/2))
+#res = (anscombeTrans_NB_alt(as.vector(V_NB_obs), k) - anscombeTrans_NB_alt(as.vector(H_NB%*%W_NB), k))/(1/(k-1/2))
+#hist(res, breaks = 50, prob = T)
+#curve(dnorm(x), add = T, col = "red")
+#curve(dnorm(x, sd = sd(res, na.rm = T)), add = T, col = "blue")
+
+
+res = (anscombeTrans_NB(as.vector(V_NB_obs), k) - anscombeTrans_NB(as.vector(H_NB%*%W_NB), k))
 hist(res, breaks = 50, prob = T)
 curve(dnorm(x), add = T, col = "red")
+curve(dnorm(x, sd = sd(res, na.rm = T)), add = T, col = "blue")
 
 
-res = (anscombeTrans_NB(as.vector(V_NB_obs), k) - anscombeTrans_NB(as.vector(H_NB%*%W_NB), k))/trigamma(k)
+#res = (anscombeTrans_NB(as.vector(V_NB_obs), k, c = 0.3) - anscombeTrans_NB(as.vector(H_NB%*%W_NB), k))/(1/(k-1/2))
+#hist(res, breaks = 50, prob = T)
+#curve(dnorm(x), add = T, col = "red")
+#curve(dnorm(x, sd = sd(res, na.rm = T)), add = T, col = "blue")
+
+
+res = (anscombeTrans_NB2(as.vector(V_NB_obs), k) - anscombeTrans_NB2(as.vector(H_NB%*%W_NB), k))
 hist(res, breaks = 50, prob = T)
 curve(dnorm(x), add = T, col = "red")
+curve(dnorm(x, sd = sd(res, na.rm = T)), add = T, col = "blue")
 
 
-res = (anscombeTrans_NB(as.vector(V_NB_obs), k, c = 0.3) - anscombeTrans_NB(as.vector(H_NB%*%W_NB), k))/(1/(k-1/2))
+#
+#TESTING ON DATA
+#
+
+
+k=500
+NMF_NB <- NMFNBMMsquarem(data, 6, k)
+W_NB = NMF_NB$E
+H_NB = NMF_NB$P
+
+WH = H_NB%*%W_NB
+alpha = k
+k <- optimize(function(alpha) -sum(dnbinom(x = data, size = alpha, prob = WH/(alpha + WH), log = T)), interval = c(0,100))$minimum
+
+NMF_NB <- NMFNBMMsquarem(data, 6, k)
+W_NB = NMF_NB$E
+H_NB = NMF_NB$P
+
+res = (anscombeTrans_NB_alt(as.vector(data), k) - anscombeTrans_NB_alt(as.vector(H_NB%*%W_NB), k))
 hist(res, breaks = 50, prob = T)
 curve(dnorm(x), add = T, col = "red")
+curve(dnorm(x, sd = sd(res, na.rm = T)), add = T, col = "blue")
+shapiro.test(res)
 
+res = (anscombeTrans_NB(as.vector(data), k) - anscombeTrans_NB(as.vector(H_NB%*%W_NB), k))
+hist(res, breaks = 50, prob = T)
+curve(dnorm(x), add = T, col = "red")
+curve(dnorm(x, sd = sd(res, na.rm = T)), add = T, col = "blue")
+
+res = (anscombeTrans_NB2(as.vector(data), k) - anscombeTrans_NB2(as.vector(H_NB%*%W_NB), k))
+hist(res, breaks = 50, prob = T)
+curve(dnorm(x), add = T, col = "red")
+curve(dnorm(x, sd = sd(res, na.rm = T)), add = T, col = "blue")
+
+mean(data/(H_NB%*%W_NB))
+sd(data/(H_NB%*%W_NB))
+
+
+
+
+################################################################################
+#
+#Profile likelihood
+#
+################################################################################
+
+
+alpha = seq(1,100)
+profileDF = NA
+for (k in 2:10) {
+  for (i in 1:length(alpha)) {
+    model = NMFNBMMsquarem(data, k, alpha = alpha[i])
+    W_NB = model$E
+    H_NB = model$P
+    WH = H_NB%*%W_NB
+    loglik = sum(dnbinom(x = data, size = alpha[i], prob = WH/(alpha[i] + WH), log = T))
+    if (is.na(profileDF)){
+      profileDF <- c(k, alpha[i], loglik)
+    }
+    
+    else{
+      profileDF <- rbind(profileDF, c(k, alpha[i], loglik))
+    }
+  }
+}
+colnames(profileDF) <- c("K", "alpha", "loglik")
+
+profileDF = profileDF %>% data.frame()
+p = ggplot(profileDF) + geom_line(aes(x = alpha, y = loglik, colour = factor(K)))
+#abline(v = alpha[which.max(loglik)])
+
+
+q = profileDF %>% group_by(K) %>% summarize(value = max(loglik))
+profileDF %>% group_by(alpha) %>% summarize(value = max(loglik)) %>% arrange(desc(value))
+p + geom_hline(yintercept = q$value)
+
+
+profileDFfinal = NA
+for (i in 2:10) {
+  index = which.max(profileDF[profileDF$K == i,"loglik"])
+  bestAlpha = profileDF[profileDF$K == i,"alpha"][index]
+  value = profileDF[profileDF$K == i,"loglik"][index]
+  if (is.na(profileDF)){
+    profileDFfinal <- c(i, bestAlpha, value)
+  }
+  
+  else{
+    profileDFfinal <- rbind(profileDFfinal, c(i, bestAlpha, value))
+  }
+}
+colnames(profileDFfinal) = c("K", "Alpha", "loglik")
+profileDFfinal %>% data.frame() %>% arrange(desc(loglik))
+
+
+
+max(profileDF[profileDF$K == 7, "loglik"])
