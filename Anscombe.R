@@ -135,7 +135,7 @@ resi = anscombeTrans(data) - anscombeTrans(W_pois%*%H_pois)
 hist(resi, prob = T, breaks = 30)
 curve(dnorm(x,mean = 0, sd = 1), add = T, col = "red")
 curve(dnorm(x, sd = sd(resi, na.rm = T)), add = T, col = "blue")
-
+shapiro.test(resi)
 
 
 ################################################################################
@@ -152,7 +152,7 @@ anscombeTrans_NB = function(x, alpha, c = 3/8) sqrt(alpha-1/2)*asinh(sqrt((x + c
 anscombeTrans_NB_alt = function(x, alpha) log(x + alpha/2)
 anscombeTrans_NB2 = function(x, alpha, c = 3/8) 2*asinh(sqrt((x + c)/(alpha-2*c)))
 
-k = 50
+k = 40
 NBdata = rnbinom(5000, size = k, 0.3)
 #hist(NBdata)
 hist(anscombeTrans_NB(NBdata, k), prob = T, breaks = 50)
@@ -194,12 +194,12 @@ hist(anscombeTrans_NB_alt(NBdata, (10 + 20 + 50 + 100 + 200)/5), prob = T, break
 hist(anscombeTrans_NB_alt(NBdata, 10), prob = T, breaks = 50)
 hist(anscombeTrans_NB_alt(NBdata, 500), prob = T, breaks = 50)
 
-
-NBdata = c(rnbinom(1000, size = 10, runif(1000)), 
-           rnbinom(1000, size = 20, runif(1000)),
-           rnbinom(1000, size = 50, runif(1000)),
-           rnbinom(1000, size = 100, runif(1000)),
-           rnbinom(1000, size = 200, runif(1000))
+U = runif(1000)
+NBdata = c(rnbinom(1000, size = 10, U), 
+           rnbinom(1000, size = 20, U),
+           rnbinom(1000, size = 50, U),
+           rnbinom(1000, size = 100, U),
+           rnbinom(1000, size = 200, U)
 )
 hist(anscombeTrans_NB(NBdata, (10 + 20 + 50 + 100 + 200)/5), prob = T, breaks = 50)
 hist(anscombeTrans_NB(NBdata, 10), prob = T, breaks = 50)
