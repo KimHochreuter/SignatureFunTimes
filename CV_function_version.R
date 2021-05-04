@@ -28,7 +28,7 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96){
         }
         alpha <- optimize(log_lik_NB, interval = c(0,100))$minimum
         MSE <-  mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
-        params <- (dim(alpha_NB)[1]*dim(alpha_NB)[2] + dim(beta_NB)[1]*dim(beta_NB)[2])
+        params <- (dim(alpha_NB)[1]*dim(alpha_NB)[2] + dim(beta_NB)[1]*dim(beta_NB)[2] + 1)
         nobs <- ncol(M)*nrow(M)
         BIC <- -2*log_lik_NB(alpha) + params*log(nobs)
         if (is.na(MSE_CV_NB)){
@@ -67,7 +67,7 @@ CVPO = function(M, K = 10, n_mutatypes = 96){
         beta_po = t(basis(NMF_po))
         #we replace the zero cells with the estimate from the CV. This is run 5 times, with updated M
         M_CV_po[CV_idx[[i]]] <- (t(alpha_po%*%beta_po))[CV_idx[[i]]]
-        params <- (dim(alpha_NB)[1]*dim(alpha_NB)[2] + dim(beta_NB)[1]*dim(beta_NB)[2])
+        params <- (dim(alpha_po)[1]*dim(alpha_po)[2] + dim(beta_po)[1]*dim(beta_po)[2])
         nobs <- ncol(M)*nrow(M)
         log_lik_M <- sum(as.vector(M_CV_po)*log(as.vector(t(alpha_po%*%beta_po)))-as.vector(t(alpha_po%*%beta_po)))
         BIC <- -2*log_lik_M + params*log(nobs) 
@@ -75,7 +75,7 @@ CVPO = function(M, K = 10, n_mutatypes = 96){
           MSE_CV_po <- c(k, i, s, mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2), BIC)
         }
         else{
-          MSE_CV_po <- rbind(MSE_CV_po,c(k, i, s, mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2)), BIC)
+          MSE_CV_po <- rbind(MSE_CV_po,c(k, i, s, mean((as.vector(M[CV_idx[[i]]])-(t(alpha_po%*%beta_po))[CV_idx[[i]]])^2), BIC))
         }
       }
     }
