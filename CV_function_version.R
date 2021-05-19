@@ -2,7 +2,7 @@ source("NMFNBMMsquarem.R")
 library(NMF)
 library(tidyverse)
 library(stringr)
-CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96){
+CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5){
   start_time <- Sys.time()
   if (dim(M)[2] != n_mutatypes) {
     M = t(M)
@@ -11,13 +11,13 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96){
   m <- ncol(M) #Number of mutation types
   K_range <- 2:K #Number of signatures to investigate
   MSE_CV_NB <- NA
-  CV_idx <- replicate(10, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
+  CV_idx <- replicate(n_cv_sets, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
   for (k in 2:max(K_range)){
-    for (i in 1:10){
+    for (i in 1:n_cv_sets){
       alpha <- start_alpha
       M_CV_NB <- M
       M_CV_NB[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
-      for (s in 1:5) {
+      for (s in 1:n_updates) {
         NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = alpha)
         alpha_NB = t(NMF_NB$E)
         beta_NB = t(NMF_NB$P)
@@ -53,7 +53,7 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96){
   print(end_time - start_time)
   return(MSE_CV_NB)
 }
-CVPO = function(M, K = 10, n_mutatypes = 96){
+CVPO = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5){
   start_time <- Sys.time()
   if (dim(M)[2] != n_mutatypes) {
     M = t(M)
@@ -62,12 +62,12 @@ CVPO = function(M, K = 10, n_mutatypes = 96){
   m <- ncol(M) #Number of mutation types
   K_range <- 2:K #Number of signatures to investigate
   MSE_CV_po <- NA
-  CV_idx <- replicate(10, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
+  CV_idx <- replicate(n_cv_sets, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
   for (k in 2:max(K_range)){
-    for (i in 1:10){
+    for (i in 1:n_cv_sets){
       M_CV_po <- M
       M_CV_po[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
-      for (s in 1:5){
+      for (s in 1:n_updates){
         NMF_po <- nmf(M_CV_po, rank = k, method = "KL")
         alpha_po = t(coef(NMF_po))
         beta_po = t(basis(NMF_po))
@@ -92,10 +92,3 @@ CVPO = function(M, K = 10, n_mutatypes = 96){
   print(end_time - start_time)
   return(MSE_CV_po)
 }
-
-
-plot(apply(V, 2, mean), apply(V, 2, sd), xlim = c(0,150), ylim = c(0,200))
-abline(a=0,b=1)
-
-plot(apply(patients, 2, mean), apply(patients, 2, sd), xlim = c(0,250), ylim = c(0,500))
-abline(a=0,b=1)
