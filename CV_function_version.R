@@ -86,3 +86,10 @@ CVPO = function(M, K = 10, n_mutatypes = 96){
   print(end_time - start_time)
   return(MSE_CV_po)
 }
+
+
+plot(apply(V, 2, mean), apply(V, 2, sd), xlim = c(0,150), ylim = c(0,200))
+abline(a=0,b=1)
+
+plot(apply(patients, 2, mean), apply(patients, 2, sd), xlim = c(0,250), ylim = c(0,500))
+abline(a=0,b=1)

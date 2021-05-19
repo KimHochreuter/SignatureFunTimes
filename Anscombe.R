@@ -302,15 +302,15 @@ sd(data/(H_NB%*%W_NB))
 ################################################################################
 
 
-alpha = seq(1,100)
+alpha = c(1,25,50,75,100,125,150,175,200,250,300,500)
 profileDF = NA
 for (k in 2:10) {
   for (i in 1:length(alpha)) {
-    model = NMFNBMMsquarem(data, k, alpha = alpha[i])
+    model = NMFNBMMsquarem(V, k, alpha = alpha[i])
     W_NB = model$E
     H_NB = model$P
     WH = H_NB%*%W_NB
-    loglik = sum(dnbinom(x = data, size = alpha[i], prob = WH/(alpha[i] + WH), log = T))
+    loglik = sum(dnbinom(x = V, size = alpha[i], prob = WH/(alpha[i] + WH), log = T))
     if (is.na(profileDF)){
       profileDF <- c(k, alpha[i], loglik)
     }

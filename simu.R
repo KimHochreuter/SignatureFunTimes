@@ -14,7 +14,7 @@ alpha <- optimize(log_lik_NB, interval = c(0,100))$minimum
 
 load("BRCA21.RData")
 V = t(V)
-NMF_NB = NMFNBMMsquarem(V, 14, alpha = 100)
+NMF_NB = NMFNBMMsquarem(V, 6, alpha = 100)
 alpha_NB = t(NMF_NB$E)
 beta_NB = t(NMF_NB$P)
 
@@ -27,5 +27,12 @@ log_lik_NB <- function(alpha){
   #M <- round(M_CV_NB)
   return(-sum(dnbinom(x = D, size = alpha, prob = WH/(alpha + WH), log = T)))
 }
+
 alpha <- optimize(log_lik_NB, interval = c(0,5000))$minimum
 
+k = 1.2
+mu = 15
+p = mu/(k+mu)
+n = mu/p - mu
+dnbinom(10,size=n,prob=1-p)
+dnbinom(10,mu=mu,size=k)
