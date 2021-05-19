@@ -21,12 +21,18 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96){
         NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = alpha)
         alpha_NB = t(NMF_NB$E)
         beta_NB = t(NMF_NB$P)
+        #log_lik_NB <- function(alpha){
+        #  WH <- t(alpha_NB%*%beta_NB)
+        #  M <- round(M_CV_NB)
+        #  return(-sum(dnbinom(x = M, size = alpha, prob = WH/(alpha + WH), log = T)))
+        #}
         log_lik_NB <- function(alpha){
-          WH <- t(alpha_NB%*%beta_NB)
-          M <- round(M_CV_NB)
-          return(-sum(dnbinom(x = M, size = alpha, prob = WH/(alpha + WH), log = T)))
+          WH <- as.vector(t(alpha_NB%*%beta_NB))
+          M <- as.vector(M_CV_NB)
+          return(-sum(lgamma(M + alpha) - lgamma(alpha) 
+                      + M*(log(WH) - log(WH + alpha)) + alpha*log(1-WH/(WH+alpha))))
         }
-        alpha <- optimize(log_lik_NB, interval = c(0,100))$minimum
+        alpha <- optimize(log_lik_NB, interval = c(0,5000))$minimum
         MSE <-  mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
         params <- (dim(alpha_NB)[1]*dim(alpha_NB)[2] + dim(beta_NB)[1]*dim(beta_NB)[2] + 1)
         nobs <- ncol(M)*nrow(M)

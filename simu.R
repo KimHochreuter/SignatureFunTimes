@@ -29,3 +29,13 @@ log_lik_NB <- function(alpha){
 }
 alpha <- optimize(log_lik_NB, interval = c(0,5000))$minimum
 
+
+D_CV <- CVNB(D, K=15)
+
+D_CV <- as.data.frame(D_CV)
+D_CV_ = D_CV[D_CV$n_update == 5,]
+g = D_CV_ %>%
+  group_by(K) %>% {.}
+#summarise(medMSE = median(MSE), medBIC = median(BIC))
+ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = MSE)) + ylim(c(0,1000000))
+ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = alpha))

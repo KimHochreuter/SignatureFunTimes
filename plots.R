@@ -14,8 +14,8 @@ nbrun1 = CVNB(V, K = 20)
 ##  POISSON MSE/BIC PLOT
 ##
 ################################################################################
-poruna = data.frame(porun)
-#poruna = data.frame(porun1)
+#poruna = data.frame(porun)
+poruna = data.frame(porun1)
 po_plot_df = poruna[poruna$n_update == 5,]
 
 d = po_plot_df %>%
@@ -31,14 +31,14 @@ ggplot(d) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = BIC))
 ##  NEGATIVE BINOMIAL MSE/BIC PLOT
 ##
 ################################################################################
-nbruna = data.frame(nbrun)
-#nbruna = data.frame(nbruna1)
+#nbruna = data.frame(nbrun)
+nbruna = data.frame(nbruna1)
 nb_plot_df = nbruna[nbruna$n_update == 5,]
 g = nb_plot_df %>%
   group_by(K) %>% {.}
   #summarise(medMSE = median(MSE), medBIC = median(BIC))
-ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = MSE)) + ylim(c(0,10000))
-ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = BIC))
+ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = MSE)) + ylim(c(0,500000))
+ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = alpha))
 
 
 
