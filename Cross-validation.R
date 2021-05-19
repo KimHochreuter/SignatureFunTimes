@@ -67,7 +67,7 @@ end_time - start_time
 #SIGNATURE PLOTS
 ##############################################
 
-NMF_final = nmf(M, rank = 6, nrun = 10)
+NMF_final = nmf(t(V), rank = 6, nrun = 10)
 
 W = coef(NMF_final)
 W_df = data.frame(t(W))
@@ -83,6 +83,8 @@ W_df$muta2 = str_sub(W_df$MutationType, 3, -3)
     + theme(axis.text.x = element_text(angle = 90), legend.position = "none")
     + facet_grid(~muta2,scales="free_x") )
 
+
+
 ( ggplot(W_df) 
   + geom_col(aes(x = MutationType, y = s2, fill = muta2))
   #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
@@ -91,6 +93,20 @@ W_df$muta2 = str_sub(W_df$MutationType, 3, -3)
   + facet_grid(~muta2,scales="free_x") )
 
 
+d = data.frame(V[,20])
+colnames(d) = "Count"
+d$muta = str_sub(rownames(d), 3, -3)
+d$muta2 = rownames(d)
+
+( ggplot(d) 
+  + geom_bar(aes(x = muta2, y = Count, fill = muta), stat = "identity")
+  #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
+  + theme_bw() 
+  + theme(axis.text.x = element_text(angle = 90), legend.position = "none") 
+  + facet_grid(~muta,scales="free_x")
+  + theme(axis.text.x=element_blank())
+  + xlab("Mutationtype")
+  + ggtitle("Mutational profile for one patient"))
 
 ################################################################################
 ##

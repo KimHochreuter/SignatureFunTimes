@@ -48,9 +48,9 @@ ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = alpha))
 ##
 ################################################################################
 data = t(V)
-poNMF = nmf(data, rank = 6, nrun = 10, method = "KL")
-H_po = basis(poNMF)
-W_po = coef(poNMF)
+poNMF = nmf(data, rank = 4, nrun = 10, method = "KL")
+H_po = coef(poNMF) # coef = H, in X = WH
+W_po = basis(poNMF) # basis = W
 alpha = 56
 nbNMF = NMFNBMMsquarem(data, 6, alpha)
 H_nb = nbNMF$P
