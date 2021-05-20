@@ -17,3 +17,8 @@ table(colnames(MARTA))
 #Extract the patient with liver cancer for further analysis
 Liver <- cbind(WGS_PCAWG_96[,c(1,2)],
                WGS_PCAWG_96[,gsub("\\-.*","",colnames(WGS_PCAWG_96)) == "Liver"])
+
+
+rownames(Liver) = paste(substr(Liver$Trinucleotide, start = 1, stop = 1),"[",Liver$`Mutation type`,"]", substr(Liver$Trinucleotide, start = 3, stop = 3), sep = "")
+Liver = Liver[,3:ncol(Liver)]
+save(Liver, file = "DATA/Liver326.RData")

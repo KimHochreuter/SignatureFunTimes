@@ -1,13 +1,14 @@
 source("CV_function_version.R")
-load("BRCA21.RData")
+load("data/BRCA21.RData")
 load("data/patients.rda")
+load("data/Liver326.RData")
 ################################################################################
 ##
 ##  Initialize dataset
 ##
 ################################################################################
 
-dataset = V #Pick dataset
+dataset = Liver #Pick dataset
 if(dim(dataset)[1] != 96){
   dataset = t(dataset)
 }
@@ -28,8 +29,8 @@ nbrun2 = CVNB(dataset, K = 20, n_cv_sets = 20, n_updates = 10)
 ##------------------------------------------------------------------------------
 ## POISSON MSE/BIC PLOT
 #poruna = data.frame(porun)
-poruna = data.frame(porun2)
-po_plot_df = poruna[poruna$n_update == 10,]
+poruna = data.frame(porun1)
+po_plot_df = poruna[poruna$n_update == n_updates,]
 
 d = po_plot_df %>%
   group_by(K) %>% 
@@ -42,7 +43,7 @@ ggplot(d) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = BIC))
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
 #nbruna = data.frame(nbrun)
 nbruna = data.frame(nbrun2)
-nb_plot_df = nbruna[nbruna$n_update == 10,]
+nb_plot_df = nbruna[nbruna$n_update == n_updates,]
 g = nb_plot_df %>%
   group_by(K) %>% {.}
 #summarise(medMSE = median(MSE), medBIC = median(BIC))
@@ -165,7 +166,10 @@ H = coef(NMF_final_scaled)
 H_df = data.frame(H)
 #colnames(H_df) = paste("p",1:dim(H)[2],sep="")
 H_df$Signature = paste("s",rownames(H_df),sep="")
-H_df = pivot_longer(H_df, colnames(H_df)[1]:colnames(H_df)[dim(H)[2]])
+#H_df$Signature = OMEGANAME
+
+
+H_df = pivot_longer(H_df, colnames(H)[1]:colnames(H)[dim(H)[2]])
 colnames(H_df)[c(2,3)] = c("Patient", "Exposure")
 
 
@@ -210,7 +214,7 @@ H_NB_df = data.frame(H_NB)
 H_NB_df$MutationType = rownames(H_NB_df)
 H_NB_df$muta2 = str_sub(H_NB_df$MutationType, 3, -3)
 
-H_NB_df = pivot_longer(H_NB_df, s1:s4)
+H_NB_df = pivot_longer(H_NB_df, colnames(H_NB)[1]:colnames(H_NB)[length(colnames(H_NB))])
 colnames(H_NB_df)[c(3,4)] = c("Signature", "Intensity")
 ( ggplot(H_NB_df) 
   + geom_col(aes(x = MutationType, y = Intensity, fill = muta2))
@@ -237,7 +241,7 @@ colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
   + geom_bar(aes(x = Patient, y = Exposure, fill = Signature), position = "fill", stat = "identity")
   #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
   + theme_bw() 
-  + theme(axis.text.x = element_text(angle = 90)))
+  + theme(axis.text.x = element_text(angle = 90)) )
 
 
 ##------------------------------------------------------------------------------
@@ -285,4 +289,61 @@ abline(a=0,b=1)
 
 
 library(lsa)
-cosine(cbind(H_NB,W[,4]))
+asd = cosine(cbind(H_NB,W[,2]))
+asd[asd == 1] = 0
+names(which.max(asd[,length(asd[1,])]))
+
+OMEGANAME = c()
+for (i in 1:4) {
+  asd = cosine(cbind(H_NB,W[,i]))
+  asd[asd == 1] = 0
+  OMEGANAME[i] = names(which.max(asd[,length(asd[1,])]))
+}
+OMEGANAME
+colnames(W) = OMEGANAME
+W
+rownames(H) = OMEGANAME
+
+
+library(readxl)
+COSMIC_Mutational_Signatures_v3_1 <- read_excel("DATA/COSMIC_Mutational_Signatures_v3.1.xlsx")
+View(COSMIC_Mutational_Signatures_v3_1)
+cosmic = COSMIC_Mutational_Signatures_v3_1
+
+library(readr)
+COSMIC_v3_2_SBS_GRCh38 <- read_table2("DATA/COSMIC_v3.2_SBS_GRCh38.txt")
+View(COSMIC_v3_2_SBS_GRCh38)
+cosmic = COSMIC_v3_2_SBS_GRCh38
+
+dumoggrim = as.matrix(cbind(W[,4], cosmic[4:75]))
+dummy = cosine(dumoggrim)
+barplot(dummy[1,])
+abline(a=0.8,b=0)
+
+
+
+sigmixture = (cosmic$SBS2 + cosmic$SBS13)/sum(cosmic$SBS2 + cosmic$SBS13)
+cosine(W[,3], sigmixture)
+
+par(mfrow = c(1,1))
+barplot(cosmic$SBS2)
+barplot(cosmic$SBS13)
+barplot(W[,3])
+
+dummy1 = data.frame(W)
+dummy1$type = rownames(W)
+dummy1 = dummy1 %>% arrange(type)
+
+dummy2 = cosmic %>% arrange(Type)
+
+dummy1$type == dummy2$Type
+
+
+sigmixture = (dummy2$SBS2 + dummy2$SBS13)/sum(dummy2$SBS2 + dummy2$SBS13)
+cosine(dummy1[,3], sigmixture)
+
+par(mfrow = c(2,2))
+barplot(dummy2$SBS2)
+barplot(dummy2$SBS13)
+barplot(dummy1[,3])
+barplot(sigmixture)
