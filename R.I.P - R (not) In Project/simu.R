@@ -30,7 +30,6 @@ log_lik_NB <- function(alpha){
 
 alpha <- optimize(log_lik_NB, interval = c(0,5000))$minimum
 
-<<<<<<< HEAD
 
 D_CV <- CVNB(D, K=15)
 
@@ -41,11 +40,9 @@ g = D_CV_ %>%
 #summarise(medMSE = median(MSE), medBIC = median(BIC))
 ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = MSE)) + ylim(c(0,1000000))
 ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = alpha))
-=======
 k = 1.2
 mu = 15
 p = mu/(k+mu)
 n = mu/p - mu
 dnbinom(10,size=n,prob=1-p)
 dnbinom(10,mu=mu,size=k)
->>>>>>> cfb18722dd26599d5dcbe229d13c867e8f19dc49
