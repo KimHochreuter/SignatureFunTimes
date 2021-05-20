@@ -112,6 +112,8 @@ best_k = 4
 NMF_final = nmf(dataset, rank = best_k, nrun = 10)
 NMF_final_scaled = scale(NMF_final)
 
+NMF_NB_final = NMFNBMMsquarem(dataset, 4, median(g[g$K == 4,]$alpha), arrange = F)
+
 
 ##------------------------------------------------------------------------------
 ## POISSON SIGNATURES
@@ -172,11 +174,11 @@ colnames(H_df)[c(2,3)] = c("Patient", "Exposure")
   + geom_bar(aes(x = Patient, y = Exposure, fill = Signature), position = "fill", stat = "identity")
   #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
   + theme_bw() 
-  + theme(axis.text.x = element_text(angle = 90), legend.position = "none"))
+  + theme(axis.text.x = element_text(angle = 90)) )
 
 
 ##------------------------------------------------------------------------------
-## POISSON MUTATIONAL PROFILE'
+## POISSON MUTATIONAL PROFILE
 
 muta_profile = colSums(dataset)
 muta_profile = data.frame(muta_profile)
@@ -199,16 +201,67 @@ H_df_total_count = merge(H_df_total_count, muta_profile, by = "Patient")
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL SIGNATURES
 
+H_NB = NMF_NB_final$P
+rownames(H_NB) = rownames(dataset)
+colnames(H_NB) = paste("s",1:best_k,sep="")
+
+
+H_NB_df = data.frame(H_NB)
+H_NB_df$MutationType = rownames(H_NB_df)
+H_NB_df$muta2 = str_sub(H_NB_df$MutationType, 3, -3)
+
+H_NB_df = pivot_longer(H_NB_df, s1:s4)
+colnames(H_NB_df)[c(3,4)] = c("Signature", "Intensity")
+( ggplot(H_NB_df) 
+  + geom_col(aes(x = MutationType, y = Intensity, fill = muta2))
+  #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
+  + theme_bw() 
+  + theme(axis.text.x = element_text(angle = 90), legend.position = "none")
+  + facet_grid(vars(Signature), vars(muta2), scales="free_x") )
 
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL EXPOSURES
+W_NB = NMF_NB_final$E
+W_NB_df = data.frame(W_NB)
+#colnames(H_df) = paste("p",1:dim(H)[2],sep="")
+colnames(W_NB) = colnames(dataset)
+colnames(W_NB_df) = colnames(dataset)
+W_NB_df$Signature = paste("s",rownames(W_NB_df),sep="")
+W_NB_df = pivot_longer(W_NB_df, colnames(W_NB_df)[1]:colnames(W_NB_df)[dim(W_NB)[2]])
+colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
 
+
+
+( ggplot(W_NB_df) 
+  + geom_bar(aes(x = Patient, y = Exposure, fill = Signature), position = "fill", stat = "identity")
+  #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
+  + theme_bw() 
+  + theme(axis.text.x = element_text(angle = 90)))
 
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MUTATIONAL PROFILE
+muta_profile = colSums(dataset)
+muta_profile = data.frame(muta_profile)
+muta_profile$Patient = rownames(muta_profile)
+colnames(muta_profile)[1] = "real_count"
 
+W_NB_df_total_count$Patient = colnames(dataset)
+W_NB_df_total_count = W_NB_df %>% group_by(Patient) %>% summarize(count = sum(Exposure))
+W_NB_df_total_count = merge(W_NB_df_total_count, muta_profile, by = "Patient")
+
+
+( ggplot(W_NB_df_total_count) 
+  + geom_bar(aes(x = Patient, y = count), stat = "identity")
+  #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
+  + theme_bw() 
+  + theme(axis.text.x = element_text(angle = 90), legend.position = "none")
+  + geom_point(aes(x = Patient, y = real_count, color = "red"), shape = 4, size = 5, stroke = 2) )
+
+
+
+##------------------------------------------------------------------------------
 
 
 
@@ -230,3 +283,6 @@ abline(a=0,b=1)
 ##------------------------------------------------------------------------------
 
 
+
+library(lsa)
+cosine(cbind(H_NB,W[,4]))
