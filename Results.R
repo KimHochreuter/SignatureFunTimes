@@ -29,8 +29,8 @@ nbrun2 = CVNB(dataset, K = 20, n_cv_sets = 20, n_updates = 10)
 ##------------------------------------------------------------------------------
 ## POISSON MSE/BIC PLOT
 #poruna = data.frame(porun)
-poruna = data.frame(porun1)
-po_plot_df = poruna[poruna$n_update == n_updates,]
+poruna = data.frame(porun2)
+po_plot_df = poruna[poruna$n_update == 10,]
 
 d = po_plot_df %>%
   group_by(K) %>% 
@@ -43,12 +43,12 @@ ggplot(d) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = BIC))
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
 #nbruna = data.frame(nbrun)
 nbruna = data.frame(nbrun2)
-nb_plot_df = nbruna[nbruna$n_update == n_updates,]
+nb_plot_df = nbruna[nbruna$n_update == 10,]
 g = nb_plot_df %>%
   group_by(K) %>% {.}
 #summarise(medMSE = median(MSE), medBIC = median(BIC))
 ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = MSE)) + ylim(0,10000)
-ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = BIC))
+ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = -BIC))
 ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = alpha))
 
 ##------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ nbNMF = NMFNBMMsquarem(data, 6, alpha)
 H_nb = nbNMF$P
 W_nb = nbNMF$E
 
-diff_po = data - H_po%*%W_po
+diff_po = data - W_po%*%H_po
 diff_nb = data - H_nb%*%W_nb
 z = data.frame(data = as.vector(data), diff_po = as.vector(diff_po), as.vector(diff_nb))
 

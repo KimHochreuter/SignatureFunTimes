@@ -2,7 +2,7 @@ source("NMFNBMMsquarem.R")
 library(NMF)
 library(tidyverse)
 library(stringr)
-CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5){
+CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5, CVentries_percent = 0.01){
   start_time <- Sys.time()
   if (dim(M)[2] != n_mutatypes) {
     M = t(M)
@@ -11,7 +11,7 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n
   m <- ncol(M) #Number of mutation types
   K_range <- 2:K #Number of signatures to investigate
   MSE_CV_NB <- NA
-  CV_idx <- replicate(n_cv_sets, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
+  CV_idx <- replicate(n_cv_sets, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*CVentries_percent),replace=FALSE),])))
   for (k in 2:max(K_range)){
     for (i in 1:n_cv_sets){
       alpha <- start_alpha
@@ -29,7 +29,7 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n
         log_lik_NB <- function(alpha){
           WH <- as.vector(t(alpha_NB%*%beta_NB))
           M <- as.vector(M_CV_NB)
-          return(-sum(lgamma(M + alpha) - lgamma(alpha) 
+          return(sum(lgamma(M + alpha) - lgamma(alpha) 
                       + M*(log(WH) - log(WH + alpha)) + alpha*log(1-WH/(WH+alpha))))
         }
         alpha <- optimize(log_lik_NB, interval = c(0,5000))$minimum
@@ -53,7 +53,7 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n
   print(end_time - start_time)
   return(MSE_CV_NB)
 }
-CVPO = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5){
+CVPO = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5, CVentries_percent = 0.01){
   start_time <- Sys.time()
   if (dim(M)[2] != n_mutatypes) {
     M = t(M)
@@ -62,7 +62,7 @@ CVPO = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5){
   m <- ncol(M) #Number of mutation types
   K_range <- 2:K #Number of signatures to investigate
   MSE_CV_po <- NA
-  CV_idx <- replicate(n_cv_sets, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*0.01),replace=FALSE),])))
+  CV_idx <- replicate(n_cv_sets, list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*CVentries_percent),replace=FALSE),])))
   for (k in 2:max(K_range)){
     for (i in 1:n_cv_sets){
       M_CV_po <- M
