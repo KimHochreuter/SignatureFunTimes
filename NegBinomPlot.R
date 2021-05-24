@@ -45,4 +45,3 @@ library(ggpubr)
 ggarrange(NBp, DP + theme(legend.position = "none"), 
           labels = c("A", "B"),
           ncol = 2, nrow = 1)
-
