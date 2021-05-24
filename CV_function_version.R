@@ -2,6 +2,7 @@ source("NMFNBMMsquarem.R")
 library(NMF)
 library(tidyverse)
 library(stringr)
+library(lsa)
 CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5, CVentries_percent = 0.01){
   start_time <- Sys.time()
   if (dim(M)[2] != n_mutatypes) {
@@ -29,14 +30,14 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n
         log_lik_NB <- function(alpha){
           WH <- as.vector(t(alpha_NB%*%beta_NB))
           M <- as.vector(M_CV_NB)
-          return(sum(lgamma(M + alpha) - lgamma(alpha) 
+          return(-sum(lgamma(M + alpha) - lgamma(alpha) 
                       + M*(log(WH) - log(WH + alpha)) + alpha*log(1-WH/(WH+alpha))))
         }
-        alpha <- optimize(log_lik_NB, interval = c(0,5000))$minimum
+        alpha <- optimize(log_lik_NB, interval = c(0,100000))$minimum
         MSE <-  mean((as.vector(M[CV_idx[[i]]])-(t(alpha_NB%*%beta_NB))[CV_idx[[i]]])^2)
         params <- (dim(alpha_NB)[1]*dim(alpha_NB)[2] + dim(beta_NB)[1]*dim(beta_NB)[2] + 1)
         nobs <- ncol(M)*nrow(M)
-        BIC <- -2*log_lik_NB(alpha) + params*log(nobs)
+        BIC <- 2*log_lik_NB(alpha) + params*log(nobs)
         if (is.na(MSE_CV_NB)){
           MSE_CV_NB <- c(k, alpha, i, s, MSE, BIC)
         }
@@ -91,4 +92,49 @@ CVPO = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10, n_updates = 5, CVen
   colnames(MSE_CV_po) <- c("K", "CV_set", "n_update", "MSE", "BIC")
   print(end_time - start_time)
   return(MSE_CV_po)
+}
+
+SignaturePairing = function(Nsig, H_NB, H_PO){
+  NamingOrder = c()
+  for (i in 1:Nsig) {
+    CosineSim = cosine(cbind(H_PO,H_NB[,i]))
+    CosineSim[CosineSim == 1] = 0
+    NamingOrder[i] = names(which.max(CosineSim[,length(CosineSim[1,])]))
+    #Fixes NB signature order and finds naming order for PO signatures
+  }
+  return(NamingOrder)
+}
+
+NB_PO_sig_comparison = function(Nsig, H_NB, H_PO){
+  H_PO = H_PO[, order(colnames(H_PO))]
+  H_NB = H_NB[, order(colnames(H_NB))]
+  Signature <- colnames(H_NB)
+  CosineSim = c()
+  for (i in 1:Nsig) {
+    CosineSim[i] = cosine(H_NB[,i], H_PO[,i])  
+  }
+  CosineSim = as.numeric(round(CosineSim, digits = 4))
+  res = data.frame(cbind(Signature, CosineSim))
+  res[,2] = as.numeric(res[,2])
+  return(res)
+}
+
+Cosmic_comparison = function(Nsig, H_NB, H_PO, COSMIC){
+  COSMIC = COSMIC[match(rownames(H), COSMIC$Type),]
+  H_PO = H_PO[, order(colnames(H_PO))]
+  H_NB = H_NB[, order(colnames(H_NB))]
+  Signature <- colnames(H_NB)
+  CosineSim = c(0,0,0,0)
+  for (i in 1:Nsig){
+    cosine_po = (cosine(as.matrix(cbind(H_PO[,i], COSMIC[4:75])))[,1])[-1]
+    cosine_nb = (cosine(as.matrix(cbind(H_NB[,i], COSMIC[4:75])))[,1])[-1]
+    match_po = names(which.max(cosine_po))
+    match_nb = names(which.max(cosine_nb))
+    CosineSim = rbind(CosineSim ,c("PO", paste("s",i,sep=""), max(cosine_po), match_po))
+    CosineSim = rbind(CosineSim, c("NB", paste("s",i,sep=""), max(cosine_nb), match_nb))
+  }
+  CosineSim = as.data.frame(CosineSim[-1,])
+  colnames(CosineSim) = c("Distribution", "Signature", "Similarity", "Cosmic Signature")
+  CosineSim[,3] = as.numeric(CosineSim[,3])
+  return(CosineSim)
 }
