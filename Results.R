@@ -21,10 +21,10 @@ if(dim(dataset)[1] != 96){
 ##  Cross - Validation
 ##
 ################################################################################
-#porun = CVPO(patients, K = 20)
-#nbrun = CVNB(patients, K = 20)
-porun1 = CVPO(dataset, K = 20)
-nbrun1 = CVNB(dataset, K = 20)
+porun = CVPO(V, K = 30)
+nbrun = CVNB(V, K = 30)
+porun1 = CVPO(Liver, K = 30)
+nbrun1 = CVNB(Liver, K = 30)
 #porun2 = CVPO(dataset, K = 20, n_cv_sets = 20, n_updates = 10)
 #nbrun2 = CVNB(dataset, K = 20, n_cv_sets = 20, n_updates = 10)
 
@@ -35,7 +35,7 @@ nbrun1 = CVNB(dataset, K = 20)
 ##------------------------------------------------------------------------------
 ## POISSON MSE/BIC PLOT
 #poruna = data.frame(porun)
-poruna = data.frame(porun1)
+poruna = data.frame(porun)
 po_plot_df = poruna[poruna$n_update == 5,]
 
 d = po_plot_df %>%
@@ -56,7 +56,7 @@ p_BIC_PO = (ggplot(d)
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
 #nbruna = data.frame(nbrun)
-nbruna = data.frame(nbrun1)
+nbruna = data.frame(nbrun)
 nb_plot_df = nbruna[nbruna$n_update == 5,]
 g = nb_plot_df %>%
   group_by(K) %>% {.}
@@ -85,13 +85,13 @@ p_ALPHA_NB = (ggplot(g)
 
 mse = ggarrange(p_MSE_PO, p_MSE_NB)
 bic = ggarrange(p_BIC_PO, p_BIC_NB)
-alpha = p_ALPHA_NB
-#ggsave(plot = mse,file = "BRCA21mse.png", width = 200, height = 105.83332, units = "mm")
-#ggsave(plot = bic,file = "BRCA21bic", width = 200, height = 105.83332, units = "mm")
-#ggsave(plot = alpha,file = "BRCA21alpha", width = 132.29165, height = 105.83332, units = "mm")
-ggsave(plot = mse,file = "PCAWGmse.png", width = 200, height = 105.83332, units = "mm")
-ggsave(plot = bic,file = "PCAWGbic.png", width = 200, height = 105.83332, units = "mm")
-ggsave(plot = alpha,file = "PCAWGalpha.png", width = 132.29165, height = 105.83332, units = "mm")
+alpha = p_ALPHA_NB# + ylim(0,5000)
+ggsave(plot = mse,file = "pictures/BRCA21mse.png", width = 200, height = 105.83332, units = "mm")
+ggsave(plot = bic,file = "pictures/BRCA21bic.png", width = 200, height = 105.83332, units = "mm")
+ggsave(plot = alpha,file = "pictures/BRCA21alpha.png", width = 132.29165, height = 105.83332, units = "mm")
+#ggsave(plot = mse,file = "pictures/PCAWGmse.png", width = 200, height = 105.83332, units = "mm")
+#ggsave(plot = bic,file = "pictures/PCAWGbic.png", width = 200, height = 105.83332, units = "mm")
+#ggsave(plot = alpha,file = "pictures/PCAWGalpha.png", width = 132.29165, height = 105.83332, units = "mm")
 
 ################################################################################
 ##
@@ -99,26 +99,26 @@ ggsave(plot = alpha,file = "PCAWGalpha.png", width = 132.29165, height = 105.833
 ##
 ################################################################################
 
-data = t(dataset)
-Nsig = 10
-poNMF = nmf(data, rank = Nsig, nrun = 10, method = "KL")
+#data = t(dataset)
+Nsig = 4
+poNMF = nmf(t(V), rank = Nsig, nrun = 10, method = "KL")
 H_po = coef(poNMF) # coef = H, in X = WH
 W_po = basis(poNMF) # basis = W
-alpha = median(g[g$K == Nsig,]$alpha)
 
-nbNMF = NMFNBMMsquarem(t(data), Nsig, alpha)
+alpha = median(g[g$K == Nsig,]$alpha)
+nbNMF = NMFNBMMsquarem(V, Nsig, alpha)
 H_nb = nbNMF$P
 W_nb = nbNMF$E
 
-diff_po = data - W_po%*%H_po
-diff_nb = data - H_nb%*%W_nb
-z = data.frame(data = as.vector(data), diff_po = as.vector(diff_po), as.vector(diff_nb))
+diff_po = t(V) - H_po%*%W_po
+diff_nb = V - H_nb%*%W_nb
+z = data.frame(data = as.vector(V), diff_po = as.vector(diff_po), as.vector(diff_nb))
 
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
 p1 = (ggplot(z) + geom_point(aes(data, diff_po)) 
-     #+ xlim(c(0,500))
+     + xlim(c(0,500))
      + ylim(c(-200,200))
      + geom_function(fun = function(x) 2*sqrt(x), aes(colour = "Poisson"))
      + geom_function(fun = function(x) -2*sqrt(x), aes(colour = "Poisson"))
@@ -134,7 +134,7 @@ p1 = (ggplot(z) + geom_point(aes(data, diff_po))
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL RESIDUAL PLOT
 p2 = (ggplot(z) + geom_point(aes(data, diff_nb)) 
-     #+ xlim(c(0,500)) 
+     + xlim(c(0,500)) 
      + ylim(c(-200,200))
      + geom_function(fun = function(x) 2*sqrt(x), aes(colour = "Poisson"))
      + geom_function(fun = function(x) -2*sqrt(x), aes(colour = "Poisson"))
@@ -151,8 +151,8 @@ p2 = (ggplot(z) + geom_point(aes(data, diff_nb))
 
 
 ( resi = ggarrange(p1, p2, common.legend = T) )
-ggsave(plot = resi,file = "BRCA21residuals.png", width = 200, height = 105.83332, units = "mm")
-ggsave(plot = resi,file = "PCAWGresiduals.png", width = 200, height = 105.83332, units = "mm")
+ggsave(plot = resi,file = "pictures/BRCA21residuals.png", width = 200, height = 105.83332, units = "mm")
+#ggsave(plot = resi,file = "pictures/PCAWGresiduals.png", width = 200, height = 105.83332, units = "mm")
 
 ################################################################################
 ##
@@ -160,12 +160,12 @@ ggsave(plot = resi,file = "PCAWGresiduals.png", width = 200, height = 105.83332,
 ##
 ################################################################################
 
-Nsig = 10
+Nsig = 4
 
-NMF_final = nmf(dataset, rank = Nsig, nrun = 10)
+NMF_final = nmf(V, rank = Nsig, nrun = 10)
 NMF_final_scaled = scale(NMF_final)
 
-NMF_NB_final = NMFNBMMsquarem(as.matrix(dataset), Nsig, median(g[g$K == Nsig,]$alpha), arrange = F)
+NMF_NB_final = NMFNBMMsquarem(V, Nsig, median(g[g$K == Nsig,]$alpha), arrange = F)
 
 
 ##------------------------------------------------------------------------------
@@ -187,8 +187,8 @@ colnames(H_df)[c(3,4)] = c("Signature", "Intensity")
   + theme(axis.text.x = element_text(angle = 90, size = 5), legend.position = "none")
   + facet_grid(vars(Signature), vars(muta2), scales="free_x") ))
 
-#ggsave(plot = POsig,file = "BRCA21poSIG.png", width = 200, height = 105.83332, units = "mm")
-ggsave(plot = POsig,file = "PCAWGpoSIG.png", width = 200, height = 105.83332, units = "mm")
+ggsave(plot = POsig,file = "pictures/BRCA21poSIG.png", width = 200, height = 105.83332, units = "mm")
+#ggsave(plot = POsig,file = "pictures/PCAWGpoSIG.png", width = 200, height = 105.83332, units = "mm")
 
 ##------------------------------------------------------------------------------
 ## POISSON EXPOSURES
@@ -198,7 +198,7 @@ W_df = data.frame(W)
 W_df$Signature = paste("s",rownames(W_df),sep="")
 #H_df$Signature = OMEGANAME
 W_df = pivot_longer(W_df, colnames(W)[1]:colnames(W)[dim(W)[2]])
-colnames(H_df)[c(2,3)] = c("Patient", "Exposure")
+colnames(W_df)[c(2,3)] = c("Patient", "Exposure")
 
 
 
@@ -211,12 +211,12 @@ colnames(H_df)[c(2,3)] = c("Patient", "Exposure")
 ##------------------------------------------------------------------------------
 ## POISSON MUTATIONAL PROFILE
 
-muta_profile = colSums(dataset)
+muta_profile = colSums(V)
 muta_profile = data.frame(muta_profile)
 muta_profile$Patient = rownames(muta_profile)
 colnames(muta_profile)[1] = "real_count"
 
-H_df_total_count = H_df %>% group_by(Patient) %>% summarize(count = sum(Exposure))
+H_df_total_count = W_df %>% group_by(Patient) %>% summarize(count = sum(Exposure))
 H_df_total_count = merge(H_df_total_count, muta_profile, by = "Patient")
 
 
@@ -234,9 +234,8 @@ H_df_total_count = merge(H_df_total_count, muta_profile, by = "Patient")
 ## NEGATIVE BINOMIAL SIGNATURES
 
 H_NB = NMF_NB_final$P
-rownames(H_NB) = rownames(dataset)
+rownames(H_NB) = rownames(V)
 colnames(H_NB) = paste("s",1:Nsig,sep="")
-
 colnames(H_NB) = SignaturePairing(Nsig, H_NB, H)
 
 H_NB_df = data.frame(H_NB)
@@ -254,15 +253,15 @@ colnames(H_NB_df)[c(3,4)] = c("Signature", "Intensity")
   + theme_bw() 
   + theme(axis.text.x = element_text(angle = 90), legend.position = "none")
   + facet_grid(vars(Signature), vars(muta2), scales="free_x") ))
-ggsave(plot = NBsig,file = "BRCA21nbSIG.png", width = 200, height = 105.83332, units = "mm")
+ggsave(plot = NBsig,file = "pictures/BRCA21nbSIG.png", width = 200, height = 105.83332, units = "mm")
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL EXPOSURES
 W_NB = NMF_NB_final$E
 W_NB_df = data.frame(W_NB)
 #colnames(H_df) = paste("p",1:dim(H)[2],sep="")
-colnames(W_NB) = colnames(dataset)
-colnames(W_NB_df) = colnames(dataset)
+colnames(W_NB) = colnames(V)
+colnames(W_NB_df) = colnames(V)
 W_NB_df$Signature = paste("s",rownames(W_NB_df),sep="")
 W_NB_df = pivot_longer(W_NB_df, colnames(W_NB_df)[1]:colnames(W_NB_df)[dim(W_NB)[2]])
 colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
@@ -279,13 +278,14 @@ colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MUTATIONAL PROFILE
-muta_profile = colSums(dataset)
+muta_profile = colSums(V)
 muta_profile = data.frame(muta_profile)
 muta_profile$Patient = rownames(muta_profile)
 colnames(muta_profile)[1] = "real_count"
 
-W_NB_df_total_count$Patient = colnames(dataset)
+
 W_NB_df_total_count = W_NB_df %>% group_by(Patient) %>% summarize(count = sum(Exposure))
+#W_NB_df_total_count$Patient = colnames(V)
 W_NB_df_total_count = merge(W_NB_df_total_count, muta_profile, by = "Patient")
 
 
@@ -299,14 +299,14 @@ W_NB_df_total_count = merge(W_NB_df_total_count, muta_profile, by = "Patient")
 
 
 ##------------------------------------------------------------------------------
-PCAWG
+
 ( BRCA21expo = ggarrange(POexpo, NBexpo, common.legend = TRUE) )
-#ggsave(plot = BRCA21expo, file = "BRCA21poSIG.png", width = 200, height = 105.83332, units = "mm")
-ggsave(plot = BRCA21expo, file = "PCAWGpoSIG.png", width = 200, height = 105.83332, units = "mm")
+ggsave(plot = BRCA21expo, file = "pictures/BRCA21expo.png", width = 200, height = 105.83332, units = "mm")
+#ggsave(plot = BRCA21expo, file = "pictures/PCAWGpoSIG.png", width = 200, height = 105.83332, units = "mm")
 
 ( BRCA21count = ggarrange(POcount, NBcount, common.legend = T) )
-#ggsave(plot = BRCA21expo, file = "BRCA21poSIG.png", width = 200, height = 105.83332, units = "mm")
-ggsave(plot = BRCA21expo, file = "PCAWGpoSIG.png", width = 200, height = 105.83332, units = "mm")
+ggsave(plot = BRCA21count, file = "pictures/BRCA21count.png", width = 200, height = 105.83332, units = "mm")
+#ggsave(plot = BRCA21expo, file = "pictures/PCAWGpoSIG.png", width = 200, height = 105.83332, units = "mm")
 
 ################################################################################
 ##
@@ -334,10 +334,10 @@ NB_PO_sig_comparison(Nsig, H_NB, H)
 ggplot(NB_PO_sig_comparison(Nsig, H_NB, H)) + geom_bar(aes(x = Signature, y = CosineSim), stat = "identity") + ylim(c(0,1))
 
 Cosmic_comparison(Nsig, H_NB, H, cosmic)
-(ggplot(Cosmic_comparison(Nsig, H_NB, H, COSMIC)) 
+(ggplot(Cosmic_comparison(Nsig, H_NB, H, cosmic)) 
   + geom_bar(aes(x =`Cosmic Signature`, y = Similarity, fill = Distribution), stat = "identity", position = position_dodge()) 
   + facet_grid(cols = vars(Signature),  scales="free_x") + ylim(c(0,1))
-  + geom_text(aes(label=Similarity))
+  #+ geom_text(aes(label=Similarity))
   )
   
 
