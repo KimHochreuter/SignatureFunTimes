@@ -18,7 +18,7 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
   
   BIC_matrix <- c(0,0)
   
-  D_alpha_CV_NB <- rep(0,6)
+  D_alpha_CV_NB <- matrix(rep(0,6), nrow = 1)
   colnames(D_alpha_CV_NB) <- c("K", "alpha", "CV_set", 
                                "n_update", "D_alpha", "MSE")
   CV_idx <- replicate(n_cv_sets, 
