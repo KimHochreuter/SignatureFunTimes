@@ -35,7 +35,7 @@ nbrun1 = CVNB(Liver, K = 30)
 ##------------------------------------------------------------------------------
 ## POISSON MSE/BIC PLOT
 #poruna = data.frame(porun)
-poruna = data.frame(porun)
+poruna = data.frame(porund1_ida)
 po_plot_df = poruna[poruna$n_update == 5,]
 
 d = po_plot_df %>%
@@ -44,6 +44,11 @@ d = po_plot_df %>%
   {.}
 p_MSE_PO = ( ggplot(d) 
        + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = MSE)) 
+       + ggtitle("BRCA21 Poisson MSE")
+       + xlab("Number of mutational signatures")
+       + theme_bw() )
+p_DKL_PO = ( ggplot(d) 
+       + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = DKL)) 
        + ggtitle("BRCA21 Poisson MSE")
        + xlab("Number of mutational signatures")
        + theme_bw() )
@@ -56,7 +61,7 @@ p_BIC_PO = (ggplot(d)
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
 #nbruna = data.frame(nbrun)
-nbruna = data.frame(nbrun)
+nbruna = data.frame(nbrund1_ida)
 nb_plot_df = nbruna[nbruna$n_update == 5,]
 g = nb_plot_df %>%
   group_by(K) %>% {.}
@@ -68,6 +73,13 @@ p_MSE_NB = ( ggplot(g)
              + theme_bw()
              #+ ylim(0,6000)
               )
+p_Da_NB = ( ggplot(g) 
+             + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = D_alpha))
+             + xlab("Number of mutational signatures")
+             + ggtitle("BRCA21 Negative Binomial MSE")
+             + theme_bw()
+             #+ ylim(0,6000)
+)
 p_BIC_NB = (ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = BIC)) 
             + xlab("Number of mutational signatures")
             + ggtitle("BRCA21 Negative Binomial BIC")
@@ -84,6 +96,7 @@ p_ALPHA_NB = (ggplot(g)
 ##------------------------------------------------------------------------------
 
 mse = ggarrange(p_MSE_PO, p_MSE_NB)
+dkl = ggarrange(p_DKL_PO, p_Da_NB)
 bic = ggarrange(p_BIC_PO, p_BIC_NB)
 alpha = p_ALPHA_NB# + ylim(0,5000)
 ggsave(plot = mse,file = "pictures/BRCA21mse.png", width = 200, height = 105.83332, units = "mm")
