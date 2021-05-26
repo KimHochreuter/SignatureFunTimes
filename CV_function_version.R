@@ -19,7 +19,7 @@ CVNB = function(M, K = 10, start_alpha = 10, n_mutatypes = 96, n_cv_sets = 10, n
       M_CV_NB <- M
       M_CV_NB[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.
       for (s in 1:n_updates) {
-        NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = alpha)
+        NMF_NB = NMFNBMMsquarem(M_CV_NB, k, alpha = alpha, arrange = FALSE)
         alpha_NB = t(NMF_NB$E)
         beta_NB = t(NMF_NB$P)
         #log_lik_NB <- function(alpha){
