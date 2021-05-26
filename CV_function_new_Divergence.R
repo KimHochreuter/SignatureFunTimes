@@ -9,7 +9,7 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
   if (dim(M)[2] != n_mutatypes) {
     M = t(M)
   }
-  M[M == 0] <- 0.001
+  #M[M == 0] <- 0.001
   
   G <- nrow(M) #Number of patients
   m <- ncol(M) #Number of mutation types
@@ -20,6 +20,10 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
   CV_idx <- replicate(n_cv_sets, 
                       list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*CVentries_percent),replace=FALSE),])))
   
+  ylogyl <- function(y,l){
+    return(ifelse(y == 0, 0, y*log(y/l)))
+  }
+  
   for (k in 2:max(K_range)){
     
     for (i in 1:n_cv_sets){
@@ -27,7 +31,7 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
       #initialise
       alpha <- start_alpha
       M_CV_NB <- M
-      M_CV_NB[CV_idx[[i]]] <- 0.001 #Replace approximately 1% of cells in matrix by 0.001.
+      M_CV_NB[CV_idx[[i]]] <- 0 #Replace approximately 1% of cells in matrix by 0.001.
                                    # Chose 0.001 because of numeric issues.
       for (s in 1:n_updates) {
         
@@ -50,7 +54,7 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
         l <- as.vector(t(alpha_NB%*%beta_NB)[CV_idx[[i]]])
         
         #Measure the divergence defined for NB
-        D_alpha <- sum(y*log(y/l) - (alpha + y)*log((alpha+y)/(alpha+l)))
+        D_alpha <- sum(ylogyl(y,l) - (alpha + y)*log((alpha+y)/(alpha+l)))
         
         MSE <-  mean((y-l)^2)
         
@@ -100,6 +104,10 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
   CV_idx <- replicate(n_cv_sets, 
                       list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*CVentries_percent),replace=FALSE),])))
   
+  ylogyl <- function(y,l){
+    return(ifelse(y == 0, 0, y*log(y/l)))
+  }
+  
   for (k in 2:max(K_range)){
     
     for (i in 1:n_cv_sets){
@@ -125,7 +133,7 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
         y <- as.vector(M[CV_idx[[i]]])
         l <- as.vector(t(alpha_po%*%beta_po)[CV_idx[[i]]])
         
-        DKL <- sum(y*log(y/l)- y + l)
+        DKL <- sum(ylogyl(y,l)- y + l)
         MSE <- mean((y-l)^2)
         
         params <- (dim(alpha_po)[1]*dim(alpha_po)[2] + 
@@ -152,5 +160,5 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
 porund = CVPO_D(V, K = 20)
 nbrund = CVNB_D(V, K = 20)
 
-porund1 = CVPO_D(Liver, K = 20)
-nbrund1 = CVNB_D(Liver, K = 20, n_cv_sets = 5)
+porund1_ida = CVPO_D(Liver, K = 20, n_cv_sets = 3)
+nbrund1_ida = CVNB_D(Liver, K = 20, n_cv_sets = 3)
