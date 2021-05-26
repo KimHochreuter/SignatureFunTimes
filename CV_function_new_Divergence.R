@@ -85,9 +85,9 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
     
     #number of observations
     nobs <- ncol(M)*nrow(M)
-    BIC <- -2*dnbinom(M, alpha, 
+    BIC <- -2*sum(dnbinom(M, alpha, 
                      1-(alpha_NB%*%beta_NB/(alpha + alpha_NB%*%beta_NB)), 
-                     log = T) + params*log(nobs)
+                     log = T)) + params*log(nobs)
     
     BIC_matrix <- rbind(BIC_matrix, c(k, BIC))
     
@@ -170,7 +170,7 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
                  dim(beta_po)[1]*dim(beta_po)[2])
     nobs <- ncol(M)*nrow(M)
     
-    BIC <- -2*dpois(M, round(alpha_po%*%beta_po), log = T) + params*log(nobs) 
+    BIC <- -2*sum(dpois(M, round(alpha_po%*%beta_po), log = T)) + params*log(nobs) 
     
     BIC_matrix <- rbind(BIC_matrix, c(k, BIC))
     
