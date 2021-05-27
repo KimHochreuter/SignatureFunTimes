@@ -16,7 +16,7 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
   
   K_range <- 2:K #Number of signatures to investigate
   
-  BIC_matrix <- c(0,0)
+  BIC_matrix <- c(0,0,0)
   
   D_alpha_CV_NB <- matrix(rep(0,6), nrow = 1)
   colnames(D_alpha_CV_NB) <- c("K", "alpha", "CV_set", 
@@ -85,18 +85,24 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
     
     #number of observations
     nobs <- ncol(M)*nrow(M)
-    BIC <- -2*sum(dnbinom(M, alpha, 
-                     1-(alpha_NB%*%beta_NB/(alpha + alpha_NB%*%beta_NB)), 
-                     log = T)) + params*log(nobs)
     
-    BIC_matrix <- rbind(BIC_matrix, c(k, BIC))
+    y <- as.vector(M)
+    l <- as.vector(t(alpha_NB%*%beta_NB))
+    BIC1 <- -2*sum(dnbinom(y, alpha, 1-(l/(alpha + l)), 
+                          log = T)) + params*log(nobs)
+    
+
+    BIC2 <- 2*sum(ylogyl(y,l) - 
+                    (alpha + y)*log((alpha+y)/(alpha+l))) + params*log(nobs)
+    
+    BIC_matrix <- rbind(BIC_matrix, c(k, BIC1, BIC2))
     
     message(round(100*(k-1)/(max(K_range)-1), digits = 2), "%")
   }
   
   D_alpha_CV_NB <- D_alpha_CV_NB[-1,]
   
-  colnames(BIC_matrix) <- c("K", "BIC")
+  colnames(BIC_matrix) <- c("K", "BICL", "BICD")
   BIC_matrix <- BIC_matrix[-1,]
   
   end_time <- Sys.time()
@@ -118,7 +124,7 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
   K_range <- 2:K #Number of signatures to investigate
   
   DKL_CV_po <- rep(0,5)
-  BIC_matrix <- c(0,0)
+  BIC_matrix <- c(0,0,0)
   
   CV_idx <- replicate(n_cv_sets, 
                       list(as.matrix(expand.grid(1:G, 1:m)[sample(1:(G*m), ceiling(G*m*CVentries_percent),replace=FALSE),])))
@@ -170,14 +176,20 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
                  dim(beta_po)[1]*dim(beta_po)[2])
     nobs <- ncol(M)*nrow(M)
     
-    BIC <- -2*sum(dpois(M, round(alpha_po%*%beta_po), log = T)) + params*log(nobs) 
+    y <- as.vector(M)
+    l <- as.vector(t(alpha_po%*%beta_po))
+    l[which(l<0.5)] = 1
     
-    BIC_matrix <- rbind(BIC_matrix, c(k, BIC))
+    BIC1 <- -2*sum(dpois(round(y), round(l), log = T)) + params*log(nobs) 
+    
+    BIC2 <- 2*sum(ylogyl(y,l)- y + l) + params*log(nobs)
+    
+    BIC_matrix <- rbind(BIC_matrix, c(k, BIC1, BIC2))
     
     message(round(100*(k-1)/(max(K_range)-1), digits = 2), "%")
   }
   
-  colnames(BIC_matrix) <- c("K", "BIC")
+  colnames(BIC_matrix) <- c("K", "BICL", "BICD")
   BIC_matrix <- BIC_matrix[-1,]
   
   colnames(DKL_CV_po) <- c("K", "CV_set", "n_update", "DKL", "MSE")
@@ -188,8 +200,8 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
   return(list(DKL_CV_po, BIC_matrix))
 }
 
-porund = CVPO_D(V, K = 20)
-nbrund = CVNB_D(V, K = 20)
+porund = CVPO_D(V, K = 15)
+nbrund = CVNB_D(V, K = 15)
 
-porund1_ida = CVPO_D(Liver, K = 20)
-nbrund1_ida = CVNB_D(Liver, K = 20)
+porund1_ida = CVPO_D(Liver, K = 15)
+nbrund1_ida = CVNB_D(Liver, K = 15)
