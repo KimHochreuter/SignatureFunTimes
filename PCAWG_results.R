@@ -51,11 +51,12 @@ p_KL_PO = ( ggplot(d)
              + ylab("DKL")
              + theme_bw() 
 )
-p_BIC_PO = (ggplot(d) 
-            + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = BIC)) 
+p_BIC_PO = (ggplot(data.frame(porund1_ida[[2]][,1:2])) 
+            + geom_point(fill = "skyblue2", aes(x = factor(K), y = BICL)) 
             + ggtitle("PCAWG Poisson BIC")
             + xlab("Number of mutational signatures")
             + theme_bw() 
+            + ylim(280000, 490000)
 )
 
 ##------------------------------------------------------------------------------
@@ -80,11 +81,11 @@ p_DKL_NB = ( ggplot(g)
              + theme_bw()
              #+ ylim(0,6000)
 )
-p_BIC_NB = (ggplot(g) + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = BIC)) 
+p_BIC_NB = (ggplot(data.frame(nbrund1_ida[[2]][,1:2])) + geom_point(fill = "skyblue2", aes(x = factor(K), y = BICL)) 
             + xlab("Number of mutational signatures")
             + ggtitle("PCAWG Negative Binomial BIC")
             + theme_bw()
-            #+ ylim(-2050013, 0)
+            + ylim(280000, 490000)
 )
 p_ALPHA_NB = (ggplot(g) 
               + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = alpha))
@@ -95,10 +96,20 @@ p_ALPHA_NB = (ggplot(g)
 
 ##------------------------------------------------------------------------------
 
+
+df_bic = data.frame(K = 2:(length(porund1_ida[[2]][,2]) + 1))
+df_bic$poBIC = porund1_ida[[2]][,2] ; df_bic$nbBIC = nbrund1_ida[[2]][,2]
+df_bic = pivot_longer(df_bic, cols = c("poBIC", "nbBIC"))
+p_bic_both = (ggplot(df_bic, aes(x = K, y = value, color = name))
+              + geom_point(size = 4)
+              + theme_bw())
+
+##------------------------------------------------------------------------------
+
 mse = ggarrange(p_MSE_PO, p_MSE_NB)
 dkl = ggarrange(p_KL_PO, p_DKL_NB)
-bic = ggarrange(p_BIC_PO, p_BIC_NB)
 alpha = p_ALPHA_NB
+bic = p_bic_both
 
 ggsave(plot = mse,file = "pictures/PCAWGmse.png", width = 200, height = 105.83332, units = "mm")
 ggsave(plot = dkl,file = "pictures/PCAWGdkl.png", width = 200, height = 105.83332, units = "mm")

@@ -79,6 +79,20 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
     alpha_NB = t(NMF_NB$E)
     beta_NB = t(NMF_NB$P)
     
+    log_lik_NB <- function(alpha){
+      WH <- as.vector(t(alpha_NB%*%beta_NB))
+      M <- as.vector(M_CV_NB)
+      
+      return(-sum(lgamma(M + alpha) - lgamma(alpha) +
+                    M*(log(WH) - log(WH + alpha)) + 
+                    alpha*log(1-WH/(WH+alpha))))
+    }
+    
+    alpha <- optimize(log_lik_NB, interval = c(0,5000))$minimum
+    NMF_NB = NMFNBMMsquarem(M, k, alpha = alpha, arrange = F)
+    alpha_NB = t(NMF_NB$E)
+    beta_NB = t(NMF_NB$P)
+    
     #number of parameters in the model
     params <- (dim(alpha_NB)[1]*dim(alpha_NB)[2] + 
                  dim(beta_NB)[1]*dim(beta_NB)[2] + 1)
@@ -88,21 +102,19 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
     
     y <- as.vector(M)
     l <- as.vector(t(alpha_NB%*%beta_NB))
-    BIC1 <- -2*sum(dnbinom(y, alpha, 1-(l/(alpha + l)), 
+    BIC <- -2*sum(dnbinom(y, alpha, 1-(l/(alpha + l)), 
                           log = T)) + params*log(nobs)
     
 
-    BIC2 <- 2*sum(ylogyl(y,l) - 
-                    (alpha + y)*log((alpha+y)/(alpha+l))) + params*log(nobs)
     
-    BIC_matrix <- rbind(BIC_matrix, c(k, BIC1, BIC2))
+    BIC_matrix <- rbind(BIC_matrix, c(k, BIC, alpha))
     
     message(round(100*(k-1)/(max(K_range)-1), digits = 2), "%")
   }
   
   D_alpha_CV_NB <- D_alpha_CV_NB[-1,]
   
-  colnames(BIC_matrix) <- c("K", "BICL", "BICD")
+  colnames(BIC_matrix) <- c("K", "BIC", "alpha")
   BIC_matrix <- BIC_matrix[-1,]
   
   end_time <- Sys.time()
@@ -203,5 +215,5 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
 porund = CVPO_D(V, K = 15)
 nbrund = CVNB_D(V, K = 15)
 
-porund1_ida = CVPO_D(Liver, K = 15)
-nbrund1_ida = CVNB_D(Liver, K = 15)
+#porund1_ida = CVPO_D(Liver, K = 15, n_cv_sets = 3)
+#nbrund1_ida = CVNB_D(Liver, K = 15, n_cv_sets = 3)
