@@ -119,22 +119,30 @@ NB_PO_sig_comparison = function(Nsig, H_NB, H_PO){
   return(res)
 }
 
-Cosmic_comparison = function(Nsig, H_NB, H_PO, COSMIC){
+Cosmic_comparison = function(Nsig_po, Nsig_nb, H_NB, H_PO, COSMIC){
   COSMIC = COSMIC[match(rownames(H), COSMIC$Type),]
   H_PO = H_PO[, order(colnames(H_PO))]
   H_NB = H_NB[, order(colnames(H_NB))]
   Signature <- colnames(H_NB)
-  CosineSim = c(0,0,0,0)
-  for (i in 1:Nsig){
+  CosineSim_po = c(0,0,0,0)
+  CosineSim_nb = c(0,0,0,0)
+  for (i in 1:Nsig_po){
     cosine_po = (cosine(as.matrix(cbind(H_PO[,i], COSMIC[4:75])))[,1])[-1]
-    cosine_nb = (cosine(as.matrix(cbind(H_NB[,i], COSMIC[4:75])))[,1])[-1]
     match_po = names(which.max(cosine_po))
-    match_nb = names(which.max(cosine_nb))
-    CosineSim = rbind(CosineSim ,c("PO", paste("s",i,sep=""), max(cosine_po), match_po))
-    CosineSim = rbind(CosineSim, c("NB", paste("s",i,sep=""), max(cosine_nb), match_nb))
+    CosineSim_po = rbind(CosineSim_po ,c("PO", paste("s",i,sep=""), max(cosine_po), match_po))
   }
-  CosineSim = as.data.frame(CosineSim[-1,])
-  colnames(CosineSim) = c("Distribution", "Signature", "Similarity", "Cosmic Signature")
-  CosineSim[,3] = as.numeric(CosineSim[,3])
-  return(CosineSim)
+  for (i in 1:Nsig_nb){
+
+    cosine_nb = (cosine(as.matrix(cbind(H_NB[,i], COSMIC[4:75])))[,1])[-1]
+    match_nb = names(which.max(cosine_nb))
+    CosineSim_nb = rbind(CosineSim_nb, c("NB", paste("s",i,sep=""), max(cosine_nb), match_nb))
+  }
+  CosineSim_po = as.data.frame(CosineSim_po[-1,])
+  CosineSim_nb = as.data.frame(CosineSim_nb[-1,])
+  colnames(CosineSim_po) = c("Distribution", "Signature", "Similarity", "Cosmic Signature")
+  colnames(CosineSim_nb) = c("Distribution", "Signature", "Similarity", "Cosmic Signature")
+  CosineSim_po[,3] = as.numeric(CosineSim_po[,3])
+  CosineSim_nb[,3] = as.numeric(CosineSim_nb[,3])
+  res = list(CosineSim_po, CosineSim_nb)
+  return(res)
 }

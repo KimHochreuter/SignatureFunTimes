@@ -94,21 +94,26 @@ p_ALPHA_NB = (ggplot(g)
               + xlab("Number of mutational signatures")
               + ylab(expression(alpha))
               + ggtitle("BRCA21 Negative Binomial Dispersion Parameter"))
+##------------------------------------------------------------------------------
 
+
+df_bic = data.frame(K = 2:(length(porund[[2]][,2]) + 1))
+df_bic$poBIC = porund[[2]][,2] ; df_bic$nbBIC = nbrund[[2]][,2]
+df_bic = pivot_longer(df_bic, cols = c("poBIC", "nbBIC"))
+p_bic_both = (ggplot(df_bic, aes(x = K, y = value, color = name))
+              + geom_point(size = 4)
+              + theme_bw())
 ##------------------------------------------------------------------------------
 
 mse = ggarrange(p_MSE_PO, p_MSE_NB)
 dkl = ggarrange(p_DKL_PO, p_Da_NB)
-bic = ggarrange(p_BIC_PO, p_BIC_NB)
+bic = p_bic_both
 alpha = p_ALPHA_NB# + ylim(0,5000)
+
 ggsave(plot = mse,file = "pictures/BRCA21mse.png", width = 200, height = 105.83332, units = "mm")
 ggsave(plot = dkl,file = "pictures/BRCA21dkl.png", width = 200, height = 105.83332, units = "mm")
 ggsave(plot = bic,file = "pictures/BRCA21bic.png", width = 200, height = 105.83332, units = "mm")
 ggsave(plot = alpha,file = "pictures/BRCA21alpha.png", width = 132.29165, height = 105.83332, units = "mm")
-
-#ggsave(plot = mse,file = "pictures/PCAWGmse.png", width = 200, height = 105.83332, units = "mm")
-#ggsave(plot = bic,file = "pictures/PCAWGbic.png", width = 200, height = 105.83332, units = "mm")
-#ggsave(plot = alpha,file = "pictures/PCAWGalpha.png", width = 132.29165, height = 105.83332, units = "mm")
 
 ################################################################################
 ##
@@ -117,13 +122,16 @@ ggsave(plot = alpha,file = "pictures/BRCA21alpha.png", width = 132.29165, height
 ################################################################################
 
 #data = t(dataset)
-Nsig = 4
-poNMF = nmf(t(V), rank = Nsig, nrun = 10, method = "KL")
+Nsig_po = 4
+Nsig_nb = 3
+
+poNMF = nmf(t(V), rank = Nsig_po, nrun = 10, method = "KL")
 H_po = coef(poNMF) # coef = H, in X = WH
 W_po = basis(poNMF) # basis = W
 
-alpha = median(g[g$K == Nsig,]$alpha)
-nbNMF = NMFNBMMsquarem(V, Nsig, alpha)
+
+alpha = median(g[g$K == Nsig_nb,]$alpha)
+nbNMF = NMFNBMMsquarem(V, Nsig_nb, alpha)
 H_nb = nbNMF$P
 W_nb = nbNMF$E
 
@@ -177,25 +185,26 @@ ggsave(plot = resi,file = "pictures/BRCA21residuals.png", width = 200, height = 
 ##
 ################################################################################
 
-Nsig = 4
+Nsig_po = 4
+Nsig_nb = 3 
 
-NMF_final = nmf(V, rank = Nsig, nrun = 10)
+NMF_final = nmf(V, rank = Nsig_po, nrun = 10)
 NMF_final_scaled = scale(NMF_final)
 
-NMF_NB_final = NMFNBMMsquarem(V, Nsig, median(g[g$K == Nsig,]$alpha), arrange = F)
+NMF_NB_final = NMFNBMMsquarem(V, Nsig_nb, median(g[g$K == Nsig_nb,]$alpha), arrange = F)
 
 
 ##------------------------------------------------------------------------------
 ## POISSON SIGNATURES
 
 H = basis(NMF_final_scaled)
-colnames(H) = paste("s",1:Nsig,sep="")
+colnames(H) = paste("s",1:Nsig_po,sep="")
 H_df = data.frame(H)
-colnames(H_df) = paste("s",1:Nsig,sep="")
+colnames(H_df) = paste("s",1:Nsig_po,sep="")
 H_df$MutationType = rownames(H_df)
 H_df$muta2 = str_sub(H_df$MutationType, 3, -3)
 
-H_df = pivot_longer(H_df, colnames(H_df)[1]:colnames(H_df)[Nsig])
+H_df = pivot_longer(H_df, colnames(H_df)[1]:colnames(H_df)[Nsig_po])
 colnames(H_df)[c(3,4)] = c("Signature", "Intensity")
 (POsig = ( ggplot(H_df) 
   + geom_col(aes(x = MutationType, y = Intensity, fill = muta2))
@@ -252,14 +261,14 @@ H_df_total_count = merge(H_df_total_count, muta_profile, by = "Patient")
 
 H_NB = NMF_NB_final$P
 rownames(H_NB) = rownames(V)
-colnames(H_NB) = paste("s",1:Nsig,sep="")
-colnames(H_NB) = SignaturePairing(Nsig, H_NB, H)
+colnames(H_NB) = paste("s",1:Nsig_nb,sep="")
+colnames(H_NB) = SignaturePairing(Nsig_nb, H_NB, H)
 
 H_NB_df = data.frame(H_NB)
 H_NB_df$MutationType = rownames(H_NB_df)
 H_NB_df$muta2 = str_sub(H_NB_df$MutationType, 3, -3)
 
-H_NB_df = pivot_longer(H_NB_df, colnames(H_NB)[1]:colnames(H_NB)[Nsig])
+H_NB_df = pivot_longer(H_NB_df, colnames(H_NB)[1]:colnames(H_NB)[Nsig_nb])
 colnames(H_NB_df)[c(3,4)] = c("Signature", "Intensity")
 
 
@@ -285,12 +294,12 @@ colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
 
 
 
-(NBexpo = ( ggplot(W_NB_df) 
+NBexpo = ( ggplot(W_NB_df) 
   + geom_bar(aes(x = Patient, y = Exposure, fill = Signature), position = "fill", stat = "identity")
   #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
   + theme_bw() 
   + theme(axis.text.x = element_text(angle = 90)) )
-  + theme(legend.title = element_blank()))
+  + theme(legend.title = element_blank())
 
 
 ##------------------------------------------------------------------------------
@@ -351,7 +360,7 @@ NB_PO_sig_comparison(Nsig, H_NB, H)
 ggplot(NB_PO_sig_comparison(Nsig, H_NB, H)) + geom_bar(aes(x = Signature, y = CosineSim), stat = "identity") + ylim(c(0,1))
 
 Cosmic_comparison(Nsig, H_NB, H, cosmic)
-(ggplot(Cosmic_comparison(Nsig, H_NB, H, cosmic)) 
+(ggplot(Cosmic_comparison(Nsig_po =  4, Nsig_nb = 3, H_NB, H, cosmic)) 
   + geom_bar(aes(x =`Cosmic Signature`, y = Similarity, fill = Distribution), stat = "identity", position = position_dodge()) 
   + facet_grid(cols = vars(Signature),  scales="free_x") + ylim(c(0,1))
   #+ geom_text(aes(label=Similarity))
@@ -359,7 +368,7 @@ Cosmic_comparison(Nsig, H_NB, H, cosmic)
   
 
 
-
+Cosmic_comparison(Nsig_po =  4, Nsig_nb = 3, H_NB, H, cosmic)
 
 
 
