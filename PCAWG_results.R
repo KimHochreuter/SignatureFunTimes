@@ -24,13 +24,14 @@ if(dim(dataset)[1] != 96){
 ##  Cross - Validation
 ##
 ################################################################################
-PCAWGporun = CVPO(dataset, K = 30)
-PCAWGnbrun = CVNB(dataset, K = 30)
-
+PCAWGporun = CVPO_D(dataset, K = 30)
+PCAWGnbrun = CVNB_D(dataset, K = 30)
+PCAWGporun = porun1
+PCAWGnbrun = nbrun1
 
 ##------------------------------------------------------------------------------
 ## POISSON MSE/BIC PLOT
-poruna = data.frame(PCAWGporun)
+poruna = data.frame(porund1_ida)
 po_plot_df = poruna[poruna$n_update == 5,]
 
 d = po_plot_df %>%
@@ -44,9 +45,10 @@ p_MSE_PO = ( ggplot(d)
              + theme_bw()
 )
 p_KL_PO = ( ggplot(d) 
-             + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = D_alpha)) 
+             + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = DKL)) 
              + ggtitle("PCAWG Poisson KL")
              + xlab("Number of mutational signatures")
+             + ylab("DKL")
              + theme_bw() 
 )
 p_BIC_PO = (ggplot(d) 
@@ -58,7 +60,7 @@ p_BIC_PO = (ggplot(d)
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
-nbruna = data.frame(PCAWGnbrun)
+nbruna = data.frame(nbrund1_ida)
 nb_plot_df = nbruna[nbruna$n_update == 5,]
 g = nb_plot_df %>%
   group_by(K) %>% {.}
@@ -71,8 +73,9 @@ p_MSE_NB = ( ggplot(g)
              #+ ylim(0,6000)
 )
 p_DKL_NB = ( ggplot(g) 
-             + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = DKL))
+             + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = D_alpha))
              + xlab("Number of mutational signatures")
+             + ylab(expression(D[alpha]))
              + ggtitle("PCAWG Negative Binomial divergence measure")
              + theme_bw()
              #+ ylim(0,6000)
@@ -108,20 +111,19 @@ ggsave(plot = alpha,file = "pictures/PCAWGalpha.png", width = 132.29165, height 
 ##
 ################################################################################
 
-data = t(dataset)
 Nsig = 10
-poNMF = nmf(data, rank = Nsig, nrun = 10, method = "KL")
+poNMF = nmf(t(Liver), rank = Nsig, nrun = 10, method = "KL")
 H_po = coef(poNMF) # coef = H, in X = WH
 W_po = basis(poNMF) # basis = W
 alpha = median(g[g$K == Nsig,]$alpha)
 
-nbNMF = NMFNBMMsquarem(t(data), Nsig, alpha)
+nbNMF = NMFNBMMsquarem(as.matrix(Liver), Nsig, alpha)
 H_nb = nbNMF$P
 W_nb = nbNMF$E
 
-diff_po = data - W_po%*%H_po
-diff_nb = data - H_nb%*%W_nb
-z = data.frame(data = as.vector(data), diff_po = as.vector(diff_po), as.vector(diff_nb))
+diff_po = t(Liver) - W_po%*%H_po
+diff_nb = Liver - H_nb%*%W_nb
+z = data.frame(data = as.vector(as.matrix(Liver)), diff_po = as.vector(t(diff_po)), diffnb = as.vector(as.matrix(diff_nb)))
 
 
 ##------------------------------------------------------------------------------
@@ -142,7 +144,7 @@ p1 = (ggplot(z) + geom_point(aes(data, diff_po))
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL RESIDUAL PLOT
-p2 = (ggplot(z) + geom_point(aes(data, diff_nb)) 
+p2 = (ggplot(z) + geom_point(aes(data, diffnb)) 
       #+ xlim(c(0,500)) 
       + ylim(c(-200,200))
       + geom_function(fun = function(x) 2*sqrt(x), aes(colour = "Poisson"))
@@ -170,10 +172,10 @@ ggsave(plot = resi,file = "pictures/PCAWGresiduals.png", width = 200, height = 1
 
 Nsig = 10
 
-NMF_final = nmf(dataset, rank = Nsig, nrun = 10)
+NMF_final = nmf(Liver, rank = Nsig, nrun = 10)
 NMF_final_scaled = scale(NMF_final)
 
-NMF_NB_final = NMFNBMMsquarem(as.matrix(dataset), Nsig, median(g[g$K == Nsig,]$alpha), arrange = F)
+NMF_NB_final = NMFNBMMsquarem(as.matrix(Liver), Nsig, median(g[g$K == Nsig,]$alpha), arrange = F)
 
 
 ##------------------------------------------------------------------------------
@@ -204,8 +206,8 @@ W_df = data.frame(W)
 #colnames(H_df) = paste("p",1:dim(H)[2],sep="")
 W_df$Signature = paste("s",rownames(W_df),sep="")
 #H_df$Signature = OMEGANAME
-W_df = pivot_longer(W_df, colnames(W)[1]:colnames(W)[dim(W)[2]])
-colnames(H_df)[c(2,3)] = c("Patient", "Exposure")
+W_df = pivot_longer(W_df, "Liver.HCC..SP97749":"Liver.HCC..SP50185")
+colnames(W_df)[c(2,3)] = c("Patient", "Exposure")
 
 
 
@@ -218,16 +220,19 @@ colnames(H_df)[c(2,3)] = c("Patient", "Exposure")
 ##------------------------------------------------------------------------------
 ## POISSON MUTATIONAL PROFILE
 
-muta_profile = colSums(dataset)
+muta_profile = colSums(Liver)
 muta_profile = data.frame(muta_profile)
 muta_profile$Patient = rownames(muta_profile)
 colnames(muta_profile)[1] = "real_count"
 
-H_df_total_count = H_df %>% group_by(Patient) %>% summarize(count = sum(Exposure))
-H_df_total_count = merge(H_df_total_count, muta_profile, by = "Patient")
+W_df$Patient = str_sub(W_df$Patient, 12)
+muta_profile$Patient = str_sub(muta_profile$Patient, 12)
+
+W_df_total_count = W_df %>% group_by(Patient) %>% summarize(count = sum(Exposure))
+W_df_total_count = merge(W_df_total_count, muta_profile, by = "Patient")
 
 
-(POcount = ( ggplot(H_df_total_count) 
+(POcount = ( ggplot(W_df_total_count) 
              + geom_bar(aes(x = Patient, y = count), stat = "identity")
              #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
              + theme_bw() 
@@ -268,8 +273,8 @@ ggsave(plot = NBsig,file = "pictures/PCAWGnbSIG.png", width = 200, height = 105.
 W_NB = NMF_NB_final$E
 W_NB_df = data.frame(W_NB)
 #colnames(H_df) = paste("p",1:dim(H)[2],sep="")
-colnames(W_NB) = colnames(dataset)
-colnames(W_NB_df) = colnames(dataset)
+colnames(W_NB) = colnames(Liver)
+colnames(W_NB_df) = colnames(Liver)
 W_NB_df$Signature = paste("s",rownames(W_NB_df),sep="")
 W_NB_df = pivot_longer(W_NB_df, colnames(W_NB_df)[1]:colnames(W_NB_df)[dim(W_NB)[2]])
 colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
@@ -286,13 +291,19 @@ colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MUTATIONAL PROFILE
-muta_profile = colSums(dataset)
+muta_profile = colSums(Liver)
 muta_profile = data.frame(muta_profile)
 muta_profile$Patient = rownames(muta_profile)
 colnames(muta_profile)[1] = "real_count"
+muta_profile = muta_profile %>% arrange(Patient)
 
-W_NB_df_total_count$Patient = colnames(dataset)
+W_NB_df_total_count$Patient = str_sub(W_NB_df$Patient, 12)
+muta_profile$Patient = str_sub(muta_profile$Patient, 12)
+
+W_NB_df_total_count = W_NB_df %>% arrange(Patient)
+W_NB_df_total_count$Patient = muta_profile$Patient
 W_NB_df_total_count = W_NB_df %>% group_by(Patient) %>% summarize(count = sum(Exposure))
+W_NB_df_total_count$Patient = muta_profile$Patient
 W_NB_df_total_count = merge(W_NB_df_total_count, muta_profile, by = "Patient")
 
 
