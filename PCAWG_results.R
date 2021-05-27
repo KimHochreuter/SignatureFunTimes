@@ -237,8 +237,9 @@ W_df_total_count = merge(W_df_total_count, muta_profile, by = "Patient")
              #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
              + theme_bw() 
              + theme(axis.text.x = element_text(angle = 90))
-             + geom_point(aes(x = Patient, y = real_count, color = "Estimated count"), shape = 4, size = 2, stroke = 2)
-             + theme(legend.title = element_blank()) ))
+             + geom_point(aes(x = Patient, y = real_count, color = "Estimated count"), shape = 4, size = 1, stroke = 1)
+             + theme(legend.title = element_blank())
+             + theme(axis.text.x = element_blank())))
 
 
 
@@ -291,20 +292,17 @@ colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MUTATIONAL PROFILE
+
 muta_profile = colSums(Liver)
 muta_profile = data.frame(muta_profile)
 muta_profile$Patient = rownames(muta_profile)
 colnames(muta_profile)[1] = "real_count"
-muta_profile = muta_profile %>% arrange(Patient)
 
-W_NB_df_total_count$Patient = str_sub(W_NB_df$Patient, 12)
-muta_profile$Patient = str_sub(muta_profile$Patient, 12)
 
-W_NB_df_total_count = W_NB_df %>% arrange(Patient)
-W_NB_df_total_count$Patient = muta_profile$Patient
 W_NB_df_total_count = W_NB_df %>% group_by(Patient) %>% summarize(count = sum(Exposure))
-W_NB_df_total_count$Patient = muta_profile$Patient
+#W_NB_df_total_count$Patient = colnames(V)
 W_NB_df_total_count = merge(W_NB_df_total_count, muta_profile, by = "Patient")
+
 
 
 (NBcount = ( ggplot(W_NB_df_total_count) 
@@ -312,17 +310,17 @@ W_NB_df_total_count = merge(W_NB_df_total_count, muta_profile, by = "Patient")
              #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
              + theme_bw() 
              + theme(axis.text.x = element_text(angle = 90))
-             + geom_point(aes(x = Patient, y = real_count, color = "Estimated count"), shape = 4, size = 2, stroke = 2) ))
+             + geom_point(aes(x = Patient, y = real_count, color = "Estimated count"), shape = 4, size = 1, stroke = 1) )
+             + theme(axis.text.x = element_blank()))
 
 
 
 ##------------------------------------------------------------------------------
-PCAWG
 ( PCAWGexpo = ggarrange(POexpo, NBexpo, common.legend = TRUE) )
 ggsave(plot = PCAWGexpo, file = "pictures/PCAWGexo.png", width = 200, height = 105.83332, units = "mm")
 
 ( PCAWGcount = ggarrange(POcount, NBcount, common.legend = T) )
-ggsave(plot = PCAWGexpo, file = "pictures/PCAWGcount.png", width = 200, height = 105.83332, units = "mm")
+ggsave(plot = PCAWGcount, file = "pictures/PCAWGcount.png", width = 200, height = 105.83332, units = "mm")
 
 ################################################################################
 ##
@@ -346,12 +344,14 @@ abline(a=0,b=1)
 colnames(H) = SignaturePairing(4,H_NB,H)
 
 
-ggplot(NB_PO_sig_comparison(Nsig, H_NB, H)) + geom_bar(aes(x = Signature, y = CosineSim), stat = "identity") + ylim(c(0,1))
+SignatureComparison = (ggplot(NB_PO_sig_comparison(Nsig, H_NB, H)) 
+                       + geom_bar(aes(x = Signature, y = CosineSim), stat = "identity") 
+                       + ylim(c(0,1)))
 
 Cosmic_comparison(Nsig, H_NB, H, cosmic)
-(ggplot(Cosmic_comparison(Nsig, H_NB, H, COSMIC)) 
-  + geom_bar(aes(x =`Cosmic Signature`, y = Similarity, fill = Distribution), stat = "identity", position = position_dodge()) 
+(ggplot(Cosmic_comparison(Nsig, H_NB, H, cosmic), aes(x =`Cosmic Signature`, y = Similarity, fill = Distribution)) 
+  + geom_bar(stat = "identity", position = position_dodge()) 
   + facet_grid(cols = vars(Signature),  scales="free_x") + ylim(c(0,1))
-  + geom_text(aes(label=Similarity))
+  #+ stat_count(aes(label = ..count..), geom = "text")
 )
 
