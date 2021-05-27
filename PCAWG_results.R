@@ -98,7 +98,7 @@ p_ALPHA_NB = (ggplot(g)
 
 
 df_bic = data.frame(K = 2:(length(porund1_ida[[2]][,2]) + 1))
-df_bic$poBIC = porund1_ida[[2]][,2] ; df_bic$nbBIC = nbrund1_ida[[2]][,2]
+df_bic$Poisson = porund1_ida[[2]][,2] ; df_bic$`Negative Binomial` = nbrund1_ida[[2]][,2]
 df_bic = pivot_longer(df_bic, cols = c("poBIC", "nbBIC"))
 p_bic_both = (ggplot(df_bic, aes(x = K, y = value, color = name))
               + geom_point(size = 4)

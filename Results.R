@@ -98,10 +98,13 @@ p_ALPHA_NB = (ggplot(g)
 
 
 df_bic = data.frame(K = 2:(length(porund[[2]][,2]) + 1))
-df_bic$poBIC = porund[[2]][,2] ; df_bic$nbBIC = nbrund[[2]][,2]
-df_bic = pivot_longer(df_bic, cols = c("poBIC", "nbBIC"))
-p_bic_both = (ggplot(df_bic, aes(x = K, y = value, color = name))
+df_bic$Poisson = porund[[2]][,2] ; df_bic$`Negative Binomial` = nbrund[[2]][,2]
+df_bic = pivot_longer(df_bic, cols = c("Poisson", "Negative Binomial"))
+p_bic_both = (ggplot(df_bic, aes(x = factor(K), y = value, color = name))
               + geom_point(size = 4)
+              + ylab("BIC")
+              + xlab("Number of mutational signatures")
+              + ggtitle("BRCA21 BIC")
               + theme_bw())
 ##------------------------------------------------------------------------------
 
