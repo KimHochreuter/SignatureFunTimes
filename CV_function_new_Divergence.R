@@ -215,5 +215,5 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
 porund = CVPO_D(V, K = 15)
 nbrund = CVNB_D(V, K = 15)
 
-#porund1_ida = CVPO_D(Liver, K = 15, n_cv_sets = 3)
-#nbrund1_ida = CVNB_D(Liver, K = 15, n_cv_sets = 3)
+porund1_ida = CVPO_D(Liver, K = 15)
+nbrund1_ida = CVNB_D(Liver, K = 15)
