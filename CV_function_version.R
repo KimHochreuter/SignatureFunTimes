@@ -105,15 +105,16 @@ SignaturePairing = function(Nsig, H_NB, H_PO){
   return(NamingOrder)
 }
 
-NB_PO_sig_comparison = function(Nsig, H_NB, H_PO){
+NB_PO_sig_comparison = function(Nsig_po, Nsig_nb, H_NB, H_PO){
   H_PO = H_PO[, order(colnames(H_PO))]
   H_NB = H_NB[, order(colnames(H_NB))]
   Signature <- colnames(H_NB)
   CosineSim = c()
-  for (i in 1:Nsig) {
+  Nsig = min(Nsig_po, Nsig_nb)
+  for (i in Signature) {
     CosineSim[i] = cosine(H_NB[,i], H_PO[,i])  
   }
-  CosineSim = as.numeric(round(CosineSim, digits = 4))
+  CosineSim = as.numeric(round(CosineSim, digits = 3))
   res = data.frame(cbind(Signature, CosineSim))
   res[,2] = as.numeric(res[,2])
   return(res)
@@ -123,26 +124,24 @@ Cosmic_comparison = function(Nsig_po, Nsig_nb, H_NB, H_PO, COSMIC){
   COSMIC = COSMIC[match(rownames(H), COSMIC$Type),]
   H_PO = H_PO[, order(colnames(H_PO))]
   H_NB = H_NB[, order(colnames(H_NB))]
-  Signature <- colnames(H_NB)
   CosineSim_po = c(0,0,0,0)
   CosineSim_nb = c(0,0,0,0)
-  for (i in 1:Nsig_po){
+  for (i in colnames(H_PO)){
     cosine_po = (cosine(as.matrix(cbind(H_PO[,i], COSMIC[4:75])))[,1])[-1]
     match_po = names(which.max(cosine_po))
-    CosineSim_po = rbind(CosineSim_po ,c("PO", paste("s",i,sep=""), max(cosine_po), match_po))
+    CosineSim_po = rbind(CosineSim_po ,c("PO", i, max(cosine_po), match_po))
   }
-  for (i in 1:Nsig_nb){
-
+  for (i in colnames(H_NB)){
     cosine_nb = (cosine(as.matrix(cbind(H_NB[,i], COSMIC[4:75])))[,1])[-1]
     match_nb = names(which.max(cosine_nb))
-    CosineSim_nb = rbind(CosineSim_nb, c("NB", paste("s",i,sep=""), max(cosine_nb), match_nb))
+    CosineSim_nb = rbind(CosineSim_nb, c("NB", i, max(cosine_nb), match_nb))
   }
   CosineSim_po = as.data.frame(CosineSim_po[-1,])
   CosineSim_nb = as.data.frame(CosineSim_nb[-1,])
   colnames(CosineSim_po) = c("Distribution", "Signature", "Similarity", "Cosmic Signature")
   colnames(CosineSim_nb) = c("Distribution", "Signature", "Similarity", "Cosmic Signature")
-  CosineSim_po[,3] = as.numeric(CosineSim_po[,3])
-  CosineSim_nb[,3] = as.numeric(CosineSim_nb[,3])
-  res = list(CosineSim_po, CosineSim_nb)
+  CosineSim_po[,3] = round(as.numeric(CosineSim_po[,3]), digits = 2)
+  CosineSim_nb[,3] = round(as.numeric(CosineSim_nb[,3]), digits = 2)
+  res = rbind(CosineSim_po, CosineSim_nb)
   return(res)
 }

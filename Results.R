@@ -1,8 +1,10 @@
 library(ggpubr)
 library(ggforce)
+library(cowplot)
 library(lsa)
 source("CV_function_version.R")
 source("CV_function_new_Divergence.R")
+cosmic = read_table2("DATA/COSMIC_v3.2_SBS_GRCh38.txt")
 load("data/BRCA21.RData")
 load("data/patients.rda")
 load("data/Liver326.RData")
@@ -47,7 +49,9 @@ p_MSE_PO = ( ggplot(d)
        + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = MSE)) 
        + ggtitle("BRCA21 Poisson MSE")
        + xlab("Number of mutational signatures")
-       + theme_bw() )
+       + theme_bw() 
+       #+ ylim(0, 25000)
+       )
 p_DKL_PO = ( ggplot(d) 
        + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = DKL)) 
        + ggtitle("BRCA21 Poisson KL Divergence")
@@ -72,7 +76,7 @@ p_MSE_NB = ( ggplot(g)
              + xlab("Number of mutational signatures")
              + ggtitle("BRCA21 Negative Binomial MSE")
              + theme_bw()
-             #+ ylim(0,6000)
+             #+ ylim(0,25000)
               )
 p_Da_NB = ( ggplot(g) 
              + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = D_alpha))
@@ -88,8 +92,8 @@ p_BIC_NB = (ggplot(data.frame(nbrund[[2]])) + geom_point(fill = "skyblue2", aes(
             + theme_bw()
             #+ ylim(-2050013, 0)
             )
-p_ALPHA_NB = (ggplot(g) 
-              + geom_boxplot(fill = "skyblue2", aes(x = factor(K), y = alpha))
+p_ALPHA_NB = (ggplot(data.frame(nbrund[[2]])) 
+              + geom_point(fill = "skyblue2", aes(x = factor(K), y = alpha), size = 4)
               +theme_bw()
               + xlab("Number of mutational signatures")
               + ylab(expression(alpha))
@@ -98,18 +102,33 @@ p_ALPHA_NB = (ggplot(g)
 
 
 df_bic = data.frame(K = 2:(length(porund[[2]][,2]) + 1))
-df_bic$Poisson = porund[[2]][,2] ; df_bic$`Negative Binomial` = nbrund[[2]][,2]
+df_bic$Poisson = porund[[2]][,2] ; df_bic$`Negative Binomial` = nbrund[[2]][,2] ; df_bic$alpha = round(nbrund[[2]][,3])
 df_bic = pivot_longer(df_bic, cols = c("Poisson", "Negative Binomial"))
-p_bic_both = (ggplot(df_bic, aes(x = factor(K), y = value, color = name))
+colnames(df_bic)[3] = c("Distribution")
+#p_bic_both = (ggplot(df_bic, aes(x = factor(K), y = value, color = name))
+#              + geom_point(size = 4)
+#              + ylab("BIC")
+#              + xlab("Number of mutational signatures")
+#              + ggtitle("BRCA21 BIC")
+#              + theme_bw())
+p_bic_both = (ggplot(df_bic, aes(x = factor(K), y = value, color = Distribution))
               + geom_point(size = 4)
-              + ylab("BIC")
+              + theme_bw()
+              #+ geom_label( 
+              #  data=df_bic %>% filter(name == "Negative Binomial"), # Filter data first
+              #  aes(label=alpha))
+              + geom_label_repel(data=df_bic %>% filter(Distribution == "Negative Binomial"), aes(label = alpha),
+                                 box.padding   = 0.1,
+                                 label.padding = 0,
+                                 point.padding = 0.5,
+                                 segment.color = 'grey50', label.size = NA, show.legend = F)
               + xlab("Number of mutational signatures")
-              + ggtitle("BRCA21 BIC")
-              + theme_bw())
+              + ylab("BRCA21 BIC")
+              + ggtitle("BIC plot"))
 ##------------------------------------------------------------------------------
 
-mse = ggarrange(p_MSE_PO, p_MSE_NB)
-dkl = ggarrange(p_DKL_PO, p_Da_NB)
+mse = ggarrange(p_MSE_PO + ylim(0,25000), p_MSE_NB + ylim(0,25000))
+dkl = ggarrange(p_DKL_PO + ylim(0,65000), p_Da_NB + ylim(0,65000))
 bic = p_bic_both
 alpha = p_ALPHA_NB# + ylim(0,5000)
 
@@ -128,9 +147,9 @@ ggsave(plot = alpha,file = "pictures/BRCA21alpha.png", width = 132.29165, height
 Nsig_po = 4
 Nsig_nb = 3
 
-poNMF = nmf(t(V), rank = Nsig_po, nrun = 10, method = "KL")
-H_po = coef(poNMF) # coef = H, in X = WH
-W_po = basis(poNMF) # basis = W
+poNMF = nmf(V, rank = 4, nrun = 10, method = "KL")
+W_po = coef(poNMF)
+H_po = basis(poNMF)
 
 
 alpha = median(g[g$K == Nsig_nb,]$alpha)
@@ -138,7 +157,7 @@ nbNMF = NMFNBMMsquarem(V, Nsig_nb, alpha)
 H_nb = nbNMF$P
 W_nb = nbNMF$E
 
-diff_po = t(V) - H_po%*%W_po
+diff_po = V - H_po%*%W_po
 diff_nb = V - H_nb%*%W_nb
 z = data.frame(data = as.vector(V), diff_po = as.vector(diff_po), as.vector(diff_nb))
 
@@ -178,7 +197,7 @@ p2 = (ggplot(z) + geom_point(aes(data, diff_nb))
 ##------------------------------------------------------------------------------
 
 
-( resi = ggarrange(p1, p2, common.legend = T) )
+resi = ggarrange(p1, p2, common.legend = T) 
 ggsave(plot = resi,file = "pictures/BRCA21residuals.png", width = 200, height = 105.83332, units = "mm")
 #ggsave(plot = resi,file = "pictures/PCAWGresiduals.png", width = 200, height = 105.83332, units = "mm")
 
@@ -337,6 +356,41 @@ ggsave(plot = BRCA21expo, file = "pictures/BRCA21expo.png", width = 200, height 
 ggsave(plot = BRCA21count, file = "pictures/BRCA21count.png", width = 200, height = 105.83332, units = "mm")
 #ggsave(plot = BRCA21expo, file = "pictures/PCAWGpoSIG.png", width = 200, height = 105.83332, units = "mm")
 
+
+
+################################################################################
+##
+##  Signature comparison
+##
+################################################################################
+
+
+colnames(H_NB) = SignaturePairing(Nsig_nb,H_NB,H)
+
+
+Sig_comp = (ggplot(NB_PO_sig_comparison(Nsig_po, Nsig_nb , H_NB, H), aes(x = Signature, y = CosineSim)) 
+            + geom_bar(stat = "identity")
+            + geom_text(aes(label = CosineSim), color = "white", nudge_y = -0.05)
+            + ggtitle("")
+            + xlab("Matched Signatures")
+            + ylab("Similarity")
+            + theme_bw()
+)
+
+
+cosmic_comp = (ggplot(Cosmic_comparison(Nsig_po, Nsig_nb, H_NB, H, cosmic), aes(`Cosmic Signature`, Similarity))
+               + geom_col(aes(fill = Distribution), position = "dodge") 
+               + facet_grid(cols = vars(Signature),  scales="free_x") + ylim(c(0,1))
+               + geom_text(aes(label=Similarity, group = Distribution), position = position_dodge(0.9), vjust = -0.5)
+               + theme_bw()
+               + theme(legend.position = "top")
+)
+
+pp = (ggdraw() + draw_plot(Sig_comp, x = 0, y = 0, width = 0.35, height = 0.9) + draw_plot(cosmic_comp, x = 0.35, y = 0, width = 0.65, height = 0.9))
+ppp = pp + draw_label("Comparing BRCA21 signatures from Poisson, Negative Binomial & Cosmic", x = 0.05, hjust = 0, y = 0.95, size = 13)
+ggsave(plot = ppp, file = "pictures/BRCAsigcomp.png", width = 200, height = 105.83332, units = "mm")
+
+
 ################################################################################
 ##
 ##  Rodebunke
@@ -353,27 +407,6 @@ plot(apply(patients, 2, mean), apply(patients, 2, sd), xlim = c(0,250), ylim = c
 abline(a=0,b=1)
 
 ##------------------------------------------------------------------------------
-
-
-
-colnames(H) = SignaturePairing(4,H_NB,H)
-
-
-NB_PO_sig_comparison(Nsig, H_NB, H)
-ggplot(NB_PO_sig_comparison(Nsig, H_NB, H)) + geom_bar(aes(x = Signature, y = CosineSim), stat = "identity") + ylim(c(0,1))
-
-Cosmic_comparison(Nsig, H_NB, H, cosmic)
-(ggplot(Cosmic_comparison(Nsig_po =  4, Nsig_nb = 3, H_NB, H, cosmic)) 
-  + geom_bar(aes(x =`Cosmic Signature`, y = Similarity, fill = Distribution), stat = "identity", position = position_dodge()) 
-  + facet_grid(cols = vars(Signature),  scales="free_x") + ylim(c(0,1))
-  #+ geom_text(aes(label=Similarity))
-  )
-  
-
-
-Cosmic_comparison(Nsig_po =  4, Nsig_nb = 3, H_NB, H, cosmic)
-
-
 
 
 library(readxl)
