@@ -73,23 +73,30 @@ CVNB_D = function(M, K = 10, start_alpha = 10, n_mutatypes = 96,
     }
     
     g <- as.data.frame(D_alpha_CV_NB)
-    alpha = median(g[g$K == k,]$alpha)
+    alpha_cur = median(g[g$K == k,]$alpha)
     
-    NMF_NB = NMFNBMMsquarem(M, k, alpha = alpha, arrange = F)
-    alpha_NB = t(NMF_NB$E)
-    beta_NB = t(NMF_NB$P)
-    
-    log_lik_NB <- function(alpha){
-      WH <- as.vector(t(alpha_NB%*%beta_NB))
-      M <- as.vector(M_CV_NB)
+    #tol <- 1
+    #while(tol>10^-2){ didn't work :(
+    for (a in 1:5){
+      NMF_NB = NMFNBMMsquarem(M, k, alpha = alpha_cur, arrange = F)
+      alpha_NB = t(NMF_NB$E)
+      beta_NB = t(NMF_NB$P)
       
-      return(-sum(lgamma(M + alpha) - lgamma(alpha) +
-                    M*(log(WH) - log(WH + alpha)) + 
-                    alpha*log(1-WH/(WH+alpha))))
+      log_lik_NB <- function(alpha){
+        WH <- as.vector(t(alpha_NB%*%beta_NB))
+        M <- as.vector(M)
+        
+        return(-sum(lgamma(M + alpha) - lgamma(alpha) +
+                      M*(log(WH) - log(WH + alpha)) + 
+                      alpha*log(1-WH/(WH+alpha))))
+      }
+      
+      alpha_new <- optimize(log_lik_NB, interval = c(0,5000))$minimum
+      #tol <- abs(alpha_cur-alpha_new)
+      alpha_cur <- alpha_new
     }
     
-    alpha <- optimize(log_lik_NB, interval = c(0,5000))$minimum
-    NMF_NB = NMFNBMMsquarem(M, k, alpha = alpha, arrange = F)
+    NMF_NB = NMFNBMMsquarem(M, k, alpha = alpha_cur, arrange = F)
     alpha_NB = t(NMF_NB$E)
     beta_NB = t(NMF_NB$P)
     
