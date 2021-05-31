@@ -2,6 +2,7 @@ library(ggpubr)
 library(ggforce)
 library(cowplot)
 library(lsa)
+library(ggrepel)
 source("CV_function_version.R")
 source("CV_function_new_Divergence.R")
 cosmic = read_table2("DATA/COSMIC_v3.2_SBS_GRCh38.txt")
@@ -127,8 +128,8 @@ p_bic_both = (ggplot(df_bic, aes(x = factor(K), y = value, color = Distribution)
               + ggtitle("BIC plot"))
 ##------------------------------------------------------------------------------
 
-mse = ggarrange(p_MSE_PO + ylim(0,25000), p_MSE_NB + ylim(0,25000))
-dkl = ggarrange(p_DKL_PO + ylim(0,65000), p_Da_NB + ylim(0,65000))
+mse = ggarrange(p_MSE_PO + ylim(0,12000), p_MSE_NB + ylim(0,12000))
+dkl = ggarrange(p_DKL_PO + ylim(0,61000) , p_Da_NB + ylim(0,61000))
 bic = p_bic_both
 alpha = p_ALPHA_NB# + ylim(0,5000)
 
@@ -152,7 +153,7 @@ W_po = coef(poNMF)
 H_po = basis(poNMF)
 
 
-alpha = median(g[g$K == Nsig_nb,]$alpha)
+alpha = nbrund[[2]][nbrund[[2]][,1] == Nsig_nb,3]
 nbNMF = NMFNBMMsquarem(V, Nsig_nb, alpha)
 H_nb = nbNMF$P
 W_nb = nbNMF$E
@@ -213,7 +214,8 @@ Nsig_nb = 3
 NMF_final = nmf(V, rank = Nsig_po, nrun = 10)
 NMF_final_scaled = scale(NMF_final)
 
-NMF_NB_final = NMFNBMMsquarem(V, Nsig_nb, median(g[g$K == Nsig_nb,]$alpha), arrange = F)
+alpha <- nbrund[[2]][nbrund[[2]][,1] == Nsig_nb,3]
+NMF_NB_final = NMFNBMMsquarem(V, Nsig_nb, alpha, arrange = F)
 
 
 ##------------------------------------------------------------------------------
@@ -251,11 +253,13 @@ colnames(W_df)[c(2,3)] = c("Patient", "Exposure")
 
 
 (POexpo = ( ggplot(W_df) 
-  + geom_bar(aes(x = Patient, y = Exposure, fill = Signature), position = "fill", stat = "identity")
-  #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
+  + geom_bar(aes(x = Patient, y = Exposure, fill = Signature), 
+             position = "fill", stat = "identity")
+ #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
   + theme_bw() 
-  + theme(axis.text.x = element_text(angle = 90)) ))
+  + theme(axis.text.x = element_text(angle = 90, size = 5)) ))
 
+POexpo <- set_palette(POexpo, palette =c("#FF0000", "#00A08A", "#F2AD00", "#5BBCD6"))
 ##------------------------------------------------------------------------------
 ## POISSON MUTATIONAL PROFILE
 
@@ -299,7 +303,7 @@ colnames(H_NB_df)[c(3,4)] = c("Signature", "Intensity")
   + geom_col(aes(x = MutationType, y = Intensity, fill = muta2))
   #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
   + theme_bw() 
-  + theme(axis.text.x = element_text(angle = 90), legend.position = "none")
+  + theme(axis.text.x = element_text(angle = 90, size = 5), legend.position = "none")
   + facet_grid(vars(Signature), vars(muta2), scales="free_x") ))
 ggsave(plot = NBsig,file = "pictures/BRCA21nbSIG.png", width = 200, height = 105.83332, units = "mm")
 
@@ -310,7 +314,8 @@ W_NB_df = data.frame(W_NB)
 #colnames(H_df) = paste("p",1:dim(H)[2],sep="")
 colnames(W_NB) = colnames(V)
 colnames(W_NB_df) = colnames(V)
-W_NB_df$Signature = paste("s",rownames(W_NB_df),sep="")
+W_NB_df$Signature = colnames(H_NB)
+  #paste("s",rownames(W_NB_df),sep="")
 W_NB_df = pivot_longer(W_NB_df, colnames(W_NB_df)[1]:colnames(W_NB_df)[dim(W_NB)[2]])
 colnames(W_NB_df)[c(2,3)] = c("Patient", "Exposure")
 
@@ -320,10 +325,10 @@ NBexpo = ( ggplot(W_NB_df)
   + geom_bar(aes(x = Patient, y = Exposure, fill = Signature), position = "fill", stat = "identity")
   #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
   + theme_bw() 
-  + theme(axis.text.x = element_text(angle = 90)) )
-  + theme(legend.title = element_blank())
+  + theme(axis.text.x = element_text(angle = 90, size = 5)) 
+  + theme(legend.title = element_blank()))
 
-
+NBexpo <- set_palette(NBexpo, palette = c("#FF0000", "#F2AD00", "#5BBCD6"))
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MUTATIONAL PROFILE
 muta_profile = colSums(V)
@@ -348,7 +353,7 @@ W_NB_df_total_count = merge(W_NB_df_total_count, muta_profile, by = "Patient")
 
 ##------------------------------------------------------------------------------
 
-( BRCA21expo = ggarrange(POexpo, NBexpo, common.legend = TRUE) )
+( BRCA21expo = ggarrange(POexpo + ylab("Exposure in %"), NBexpo + ylab("Exposure in %") , common.legend = TRUE) )
 ggsave(plot = BRCA21expo, file = "pictures/BRCA21expo.png", width = 200, height = 105.83332, units = "mm")
 #ggsave(plot = BRCA21expo, file = "pictures/PCAWGpoSIG.png", width = 200, height = 105.83332, units = "mm")
 
