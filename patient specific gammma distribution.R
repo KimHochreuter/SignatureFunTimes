@@ -34,7 +34,24 @@ hist(A_pois[,17], breaks = 17, probability = T)
 param <- mean(A_pois[,17])/var(A_pois[,17])
 curve(dgamma(x,shape=param,rate = param), add = T)
 
+
 hist(A_pois[,21], breaks = 17, probability = T)
+param <- mean(A_pois[,21])/var(A_pois[,21])
+curve(dgamma(x,shape=param,rate = param), add = T)
+
+hist1 <- ggplot(as.data.frame(A_pois[,21]), aes(x = A_pois[, 21])) +
+  geom_histogram(aes(y = ..density..), bins = 17, fill = "grey", col = "black") + 
+  theme_bw() + 
+  xlab("") +
+  stat_function(fun=dgamma, args=list(shape=params[5,2], rate=params[5,2]), col = "red")
+
+hist2 <- ggplot(as.data.frame(A_pois[,1]), aes(x = A_pois[, 1])) +
+  geom_histogram(aes(y = ..density..),bins = 17, fill = "grey", col = "black") + 
+  theme_bw() + 
+  xlab("") +
+  stat_function(fun=dgamma, args=list(shape=params[1,2], rate=params[1,2]), col = "red")
+
+
 param <- mean(A_pois[,21])/var(A_pois[,21])
 curve(dgamma(x,shape=param,rate = param), add = T)
 
@@ -48,15 +65,21 @@ colnames(params) <- c("Patient", "param", "Count")
 params[,2] <- as.numeric(params[,2])
 
 gammaplot <- ggplot(data.frame(x = c(0 , 2.5)), aes(x = x)) + 
-  stat_function(fun=dgamma, args=list(shape=params[1,2], rate=params[1,2]), aes(colour = params[1,3]))+
-  stat_function(fun=dgamma, args=list(shape=params[2,2], rate=params[2,2]), aes(colour = params[2,3]))+
-  stat_function(fun=dgamma, args=list(shape=params[3,2], rate=params[3,2]), aes(colour = params[3,3]))+
-  stat_function(fun=dgamma, args=list(shape=params[4,2], rate=params[4,2]), aes(colour = params[4,3]))+
-  stat_function(fun=dgamma, args=list(shape=params[5,2], rate=params[5,2]), aes(colour = params[5,3]))+
+  stat_function(fun=dgamma, args=list(shape=params[1,2], rate=params[1,2]), aes(colour = paste(params[1,3], " (", round(params[1,2],2), ")")))+
+  stat_function(fun=dgamma, args=list(shape=params[2,2], rate=params[2,2]), aes(colour = paste(params[2,3], " (", round(params[2,2],2), ")")))+
+  stat_function(fun=dgamma, args=list(shape=params[3,2], rate=params[3,2]), aes(colour = paste(params[3,3], " (", round(params[3,2],2), ")")))+
+  stat_function(fun=dgamma, args=list(shape=params[4,2], rate=params[4,2]), aes(colour = paste(params[4,3], " (", round(params[4,2],2), ")")))+
+  stat_function(fun=dgamma, args=list(shape=params[5,2], rate=params[5,2]), aes(colour = paste(params[5,3], " (", round(params[5,2],2), ")")))+
   ylab("Gamma density") + xlab(" ") +
-  labs(color='Total counts') +
+  labs(color=expression(paste("Total counts (", alpha, ")"))) +
   theme_bw()
 
 
-ggsave(plot = gammaplot, file = "pictures/gammaplot.png", width = 200, height = 105.83332, units = "mm")
+
+hist_gamma <- (ggdraw() + draw_plot(hist1, x = 0, y = 0, width = 0.3, height = 0.5) 
+          + draw_plot(hist2, x = 0, y = 0.5, width = 0.3, height = 0.45)
+          + draw_plot(gammaplot, x = 0.3, y = 0, width = 0.7, height = 0.95)
+          + draw_label("Fit of Gamma variable in Poisson-Gamma mixture ", x = 0.05, hjust = 0, y = 0.97, size = 13))
+
+ggsave(plot = hist_gamma, file = "pictures/gammaplot.png", width = 200, height = 105.83332, units = "mm")
 
