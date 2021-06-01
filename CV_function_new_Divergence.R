@@ -199,7 +199,7 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
     l <- as.vector(t(alpha_po%*%beta_po))
     l[which(l<0.5)] = 1
     
-    BIC1 <- -2*sum(dpois(round(y), round(l), log = T)) + params*log(nobs) 
+    BIC1 <- -2*sum(dpois(round(y), l, log = T)) + params*log(nobs) 
     
     BIC2 <- 2*sum(ylogyl(y,l)- y + l) + params*log(nobs)
     
@@ -222,5 +222,5 @@ CVPO_D = function(M, K = 10, n_mutatypes = 96, n_cv_sets = 10,
 porund = CVPO_D(V, K = 15)
 nbrund = CVNB_D(V, K = 15)
 
-porund1_ida = CVPO_D(Liver, K = 15)
-nbrund1_ida = CVNB_D(Liver, K = 15)
+#porund1_ida = CVPO_D(Liver, K = 15)
+#nbrund1_ida = CVNB_D(Liver, K = 15)
