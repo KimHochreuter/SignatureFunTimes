@@ -33,7 +33,7 @@ PCAWGnbrun = nbrun1
 
 ##------------------------------------------------------------------------------
 ## POISSON MSE/BIC PLOT
-poruna = data.frame(porund1_ida)
+poruna = data.frame(porund1_ida[[1]])
 po_plot_df = poruna[poruna$n_update == 5,]
 
 d = po_plot_df %>%
@@ -64,7 +64,7 @@ p_BIC_PO = (ggplot(data.frame(porund1_ida[[2]][,1:2]))
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
-nbruna = data.frame(nbrund1_ida)
+nbruna = data.frame(nbrund1_ida[[1]])
 nb_plot_df = nbruna[nbruna$n_update == 5,]
 g = nb_plot_df %>%
   group_by(K) %>% {.}
@@ -164,11 +164,11 @@ z = data.frame(data = as.vector(as.matrix(Liver)), diff_po = as.vector(t(diff_po
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
 p1 = (ggplot(z) + geom_point(aes(data, diff_po)) 
       #+ xlim(c(0,500))
-      + ylim(c(-200,200))
-      + geom_function(fun = function(x) 2*sqrt(x), aes(colour = "Poisson"))
-      + geom_function(fun = function(x) -2*sqrt(x), aes(colour = "Poisson"))
-      + geom_function(fun = function(x) 2*sqrt(x + (x^2)/alpha), aes(colour = "Negative Binomial"))
-      + geom_function(fun = function(x) -2*sqrt(x + (x^2)/alpha), aes(colour = "Negative Binomial"))
+      #+ ylim(c(-200,200))
+      + geom_function(fun = function(x) 3*sqrt(x), aes(colour = "Poisson"))
+      + geom_function(fun = function(x) -3*sqrt(x), aes(colour = "Poisson"))
+      + geom_function(fun = function(x) 3*sqrt(x + (x^2)/alpha), aes(colour = "Negative Binomial"))
+      + geom_function(fun = function(x) -3*sqrt(x + (x^2)/alpha), aes(colour = "Negative Binomial"))
       + ggtitle("Poisson residuals")
       + ylab("Residuals")
       + xlab("Observed values")
@@ -180,11 +180,11 @@ p1 = (ggplot(z) + geom_point(aes(data, diff_po))
 ## NEGATIVE BINOMIAL RESIDUAL PLOT
 p2 = (ggplot(z) + geom_point(aes(data, diffnb)) 
       #+ xlim(c(0,500)) 
-      + ylim(c(-200,200))
-      + geom_function(fun = function(x) 2*sqrt(x), aes(colour = "Poisson"))
-      + geom_function(fun = function(x) -2*sqrt(x), aes(colour = "Poisson"))
-      + geom_function(fun = function(x) 2*sqrt(x + (x^2)/alpha), aes(colour = "Negative Binomial"))
-      + geom_function(fun = function(x) -2*sqrt(x + (x^2)/alpha), aes(colour = "Negative Binomial"))
+      #+ ylim(c(-200,200))
+      + geom_function(fun = function(x) 3*sqrt(x), aes(colour = "Poisson"))
+      + geom_function(fun = function(x) -3*sqrt(x), aes(colour = "Poisson"))
+      + geom_function(fun = function(x) 3*sqrt(x + (x^2)/alpha), aes(colour = "Negative Binomial"))
+      + geom_function(fun = function(x) -3*sqrt(x + (x^2)/alpha), aes(colour = "Negative Binomial"))
       + ggtitle("Negative binomial residuals")
       + ylab("Residuals")
       + xlab("Observed values")
@@ -210,7 +210,8 @@ Nsig_nb = 4
 NMF_final = nmf(Liver, rank = Nsig_po, nrun = 10)
 NMF_final_scaled = scale(NMF_final)
 
-NMF_NB_final = NMFNBMMsquarem(as.matrix(Liver), Nsig_nb, median(g[g$K == Nsig_nb,]$alpha), arrange = F)
+alpha <- nbrund1_ida[[2]][nbrund1_ida[[2]][,1] == Nsig_nb,3]
+NMF_NB_final = NMFNBMMsquarem(as.matrix(Liver), Nsig_nb, alpha, arrange = F)
 
 
 ##------------------------------------------------------------------------------
@@ -305,7 +306,7 @@ colnames(H_NB_df)[c(3,4)] = c("Signature", "Intensity")
            + geom_col(aes(x = MutationType, y = Intensity, fill = muta2))
            #+ geom_col(aes(x = MutationType, y = s2, fill = muta2))
            + theme_bw() 
-           + theme(axis.text.x = element_text(angle = 90), legend.position = "none")
+           + theme(axis.text.x = element_text(angle = 90, size = 5), legend.position = "none")
            + facet_grid(vars(Signature), vars(muta2), scales="free_x") ))
 ggsave(plot = NBsig,file = "pictures/PCAWGnbSIG.png", width = 200, height = 105.83332, units = "mm")
 
