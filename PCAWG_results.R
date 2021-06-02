@@ -64,7 +64,7 @@ p_BIC_PO = (ggplot(data.frame(porund1_ida[[2]][,1:2]))
 
 ##------------------------------------------------------------------------------
 ## NEGATIVE BINOMIAL MSE/BIC PLOT
-nbruna = data.frame(nbrund1_ida)
+nbruna = data.frame(nbrund1_ida[[1]])
 nb_plot_df = nbruna[nbruna$n_update == 5,]
 g = nb_plot_df %>%
   group_by(K) %>% {.}
@@ -205,7 +205,7 @@ ggsave(plot = resi,file = "pictures/PCAWGresiduals.png", width = 200, height = 1
 ################################################################################
 
 Nsig_po = 7
-Nsig_nb = 4 
+Nsig_nb = 4
 
 NMF_final = nmf(Liver, rank = Nsig_po, nrun = 10)
 NMF_final_scaled = scale(NMF_final)
